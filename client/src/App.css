@@ -1,0 +1,238 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #0d0d0d;
+    color: white;
+}
+
+.App {
+    text-align: center;
+    padding-bottom: 80px;
+    min-height: 100vh;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 16px;
+}
+
+.top-bar .coins,
+.level-container,
+.withdraw-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.xp-bar {
+    height: 6px;
+    width: 80px;
+    background-color: #444;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: gold;
+    transition: width 0.3s ease;
+}
+
+.emoji-container {
+    margin: 30px auto 10px;
+}
+
+.emoji {
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.emoji:active {
+    transform: scale(0.95);
+}
+
+.click-bar-container {
+    margin-top: 10px;
+}
+
+.click-bar {
+    height: 12px;
+    width: 80%;
+    max-width: 300px;
+    margin: 0 auto;
+    background-color: #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.click-bar-fill {
+    height: 100%;
+    background-color: #007bff;
+    transition: width 0.3s ease;
+}
+
+.click-info {
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+.click-note {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+.tabs {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid #333;
+}
+
+.tabs button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.tabs button:hover {
+    color: #00d8ff;
+}
+
+.task-list {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.task-card {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.task-title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.task-reward {
+    font-size: 14px;
+    margin: 6px 0;
+    color: #ccc;
+}
+
+.task-card button {
+    padding: 6px 12px;
+    font-size: 14px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.task-card.completed button {
+    background-color: #2ecc71;
+    cursor: default;
+}
+
+.task-card button:disabled {
+    opacity: 0.6;
+}
+
+.message-box {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #222;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    border: 1px solid #555;
+}
+
+.withdraw-popup {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background-color: #111;
+    border: 1px solid #444;
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+}
+
+.withdraw-popup input {
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #666;
+    background-color: #222;
+    color: white;
+}
+
+.withdraw-popup button {
+    padding: 6px;
+    background-color: #00b894;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.leaderboard {
+    padding: 20px;
+    font-size: 15px;
+    color: #ccc;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
