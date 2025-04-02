@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
+axios.defaults.baseURL = "https://memex-server.onrender.com";
+
 function App() {
     const [telegramId, setTelegramId] = useState(null);
     const [coins, setCoins] = useState(0);
@@ -38,12 +40,15 @@ function App() {
 
     const handleClick = async () => {
         try {
-            const res = await axios.post("/click", { telegramId });
-            setCoins(prev => prev + res.data.coinsEarned);
-            setClicksLeft(res.data.remainingClicks);
-            showMessage(`+${res.data.coinsEarned} 💰`);
+            const res = await axios.post("/click", { telegramId });  // API'ye POST isteği
+
+            console.log("API Response:", res.data);  // API yanıtını konsola yazdırıyoruz
+
+            setCoins(prev => prev + res.data.coinsEarned);  // Coin'leri güncelliyoruz
+            setClicksLeft(res.data.remainingClicks);  // Kalan tıklama sayısını güncelliyoruz
+            showMessage(`+${res.data.coinsEarned} 💰`);  // Kullanıcıya mesaj gösteriyoruz
         } catch (err) {
-            showMessage(err.response?.data?.message || "❌ Click failed");
+            showMessage(err.response?.data?.message || "❌ Click failed");  // Hata mesajı
         }
     };
 
@@ -209,7 +214,7 @@ function App() {
                         { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
-                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" },
                     ].map((task) => (
                         <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
                             <div>{task.title}</div>
@@ -269,6 +274,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
