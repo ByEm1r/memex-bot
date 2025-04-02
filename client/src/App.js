@@ -18,7 +18,7 @@ function App() {
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
-    const [marketItems, setMarketItems] = useState([
+    const [marketItems] = useState([
         { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
         { id: "click_max", label: "🔋 +50 Max Clicks", price: 20000 },
         { id: "double_click", label: "🌀 2x Click Reward (30 min)", price: 20000 },
@@ -209,7 +209,7 @@ function App() {
                         { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
-                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" },
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }
                     ].map((task) => (
                         <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
                             <div>{task.title}</div>
@@ -269,6 +269,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
