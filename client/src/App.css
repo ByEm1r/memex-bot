@@ -1,3 +1,4 @@
+/* Genel Stil */
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
@@ -25,6 +26,18 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+.withdraw {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.withdraw input {
+    width: 100%;
+    max-width: 250px;
 }
 
 .xp-bar {
@@ -87,27 +100,69 @@ body {
     margin-top: 4px;
 }
 
-.tabs {
-    position: fixed;
-    bottom: 0;
+/* Market Kartı */
+.upgrade-card {
+    background-color: #2a2a2a;
+    padding: 20px;
+    margin: 10px 0;
     width: 100%;
-    background-color: #1a1a1a;
+    max-width: 400px;
+    border-radius: 12px;
+    border: 1px solid #444;
     display: flex;
-    justify-content: space-around;
-    padding: 10px 0;
-    border-top: 1px solid #333;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: left;
 }
 
-.tabs button {
-    background: none;
-    border: none;
-    color: white;
+.upgrade-card p {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.upgrade-card span {
     font-size: 16px;
-    cursor: pointer;
+    font-weight: 500;
+    color: #00d8ff;
 }
 
-.tabs button:hover {
-    color: #00d8ff;
+.upgrade-card button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: auto;
+    margin-left: 20px;
+}
+
+.upgrade-card button:hover {
+    background-color: #019c6d;
+}
+
+.upgrade-card button:disabled {
+    background-color: #888;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .upgrade-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .upgrade-card button {
+        margin-left: 0;
+        width: 100%;
+    }
 }
 
 .task-list {
@@ -157,7 +212,7 @@ body {
 
 .message-box {
     position: fixed;
-    bottom: 70px;
+    bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #222;
@@ -165,6 +220,10 @@ body {
     border-radius: 6px;
     font-size: 14px;
     border: 1px solid #555;
+    max-width: 90%;
+    word-wrap: break-word;
+    text-align: center;
+    z-index: 999;
 }
 
 .withdraw-popup {
@@ -198,11 +257,55 @@ body {
     cursor: pointer;
 }
 
-.leaderboard {
-    padding: 20px;
-    font-size: 15px;
-    color: #ccc;
+.leaderboard-item {
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+    font-weight: 500;
 }
+
+.tabs {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid #333;
+}
+
+.tabs button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.tabs button:hover {
+    color: #00d8ff;
+}
+
+@media only screen and (max-width: 768px) {
+    .App {
+        padding: 10px;
+    }
+
+    .tabs button {
+        font-size: 14px;
+        padding: 6px;
+    }
+
+    .task-card {
+        padding: 10px;
+    }
+
+    .market {
+        max-width: 100%;
+    }
+}
+
+
 
 
 

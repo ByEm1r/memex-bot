@@ -3,204 +3,218 @@ import axios from "axios";
 import "./App.css";
 
 function App() {
+    const [telegramId, setTelegramId] = useState(null);
     const [coins, setCoins] = useState(0);
     const [clicksLeft, setClicksLeft] = useState(0);
-    const [message, setMessage] = useState("");
-    const [activeTab, setActiveTab] = useState("home");
-    const [loading, setLoading] = useState(false);
-    const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [level, setLevel] = useState(1);
     const [xp, setXp] = useState(0);
-    const [completedTasks, setCompletedTasks] = useState([]);
-    const [withdrawAddress, setWithdrawAddress] = useState("");
-    const [showWithdraw, setShowWithdraw] = useState(false);
+    const [clickPower, setClickPower] = useState(50);
     const [lastDailyClaim, setLastDailyClaim] = useState(null);
-    const telegramId = "123456789";
+    const [completedTasks, setCompletedTasks] = useState([]);
+    const [referralCount, setReferralCount] = useState(0);
+    const [streakCount, setStreakCount] = useState(0);
+    const [activeTab, setActiveTab] = useState("home");
+    const [message, setMessage] = useState("");
+    const [loadingTaskId, setLoadingTaskId] = useState(null);
+    const [leaderboardData, setLeaderboardData] = useState([]);
+    const [withdrawAddress, setWithdrawAddress] = useState("");
+    const [marketItems, setMarketItems] = useState([
+        { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
+        { id: "click_max", label: "🔋 +50 Max Clicks", price: 20000 },
+        { id: "double_click", label: "🌀 2x Click Reward (30 min)", price: 20000 },
+        { id: "auto_click", label: "🤖 Auto-Clicker (1 hour)", price: 15000 }
+    ]);
 
-    const levelThresholds = [0, 1000, 3000, 6000, 10000, 15000];
+    const restrictedReferralTasks = {
+        invite_5_friends: 5,
+        invite_10_friends: 10,
+        invite_20_friends: 20
+    };
 
-    useEffect(() => {
-        fetchUserData();
-        const savedTasks = JSON.parse(localStorage.getItem("completedTasks")) || [];
-        setCompletedTasks(savedTasks);
-    }, []);
-
-    const fetchUserData = async () => {
-        try {
-            const res = await axios.get(`http://localhost:5000/getUserData?telegramId=${telegramId}`);
-            setCoins(res.data.coins);
-            setClicksLeft(res.data.clicks);
-            setLevel(res.data.level);
-            setXp(res.data.experience);
-            setLastDailyClaim(res.data.lastDailyClaim);
-        } catch (err) {
-            console.error("Failed to fetch user data", err);
-        }
+    const showMessage = (msg) => {
+        setMessage(msg);
+        setTimeout(() => setMessage(""), 5000);
     };
 
     const handleClick = async () => {
-        if (loading) return;
-
-        if (clicksLeft <= 0) {
-            if (!message) {
-                setMessage("❌ No clicks left. Please wait for automatic recharge.");
-                setTimeout(() => setMessage(""), 3000);
-            }
-            return;
-        }
-
-        setLoading(true);
         try {
-            const res = await axios.post("http://localhost:5000/click", { telegramId });
-            setCoins((prev) => prev + res.data.coinsEarned);
+            const res = await axios.post("/click", { telegramId });
+            setCoins(prev => prev + res.data.coinsEarned);
             setClicksLeft(res.data.remainingClicks);
-            setMessage(""); // varsa eski mesajı temizle
-        } catch (error) {
-            console.error("Click error:", error);
-            setMessage("❌ Error occurred while clicking.");
-            setTimeout(() => setMessage(""), 3000);
-        } finally {
-            setLoading(false);
+            showMessage(`+${res.data.coinsEarned} 💰`);
+        } catch (err) {
+            showMessage(err.response?.data?.message || "❌ Click failed");
         }
     };
 
-    const taskList = [
-        { id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "2,000 💰 / 100 XP" },
-        { id: "telegram_join", title: "Join Telegram", link: "https://t.me/MemeXGloball", reward: "3,000 💰 / 150 XP" },
-        { id: "twitter_like", title: "Like Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "2,000 💰 / 100 XP" },
-        { id: "twitter_retweet", title: "Retweet Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "2,400 💰 / 120 XP" },
-        { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "1,000 💰 / 50 XP" }
-    ];
-
     const handleTaskClick = async (taskId, link) => {
-        if (completedTasks.includes(taskId)) {
-            setMessage("❌ Task already completed!");
-            setTimeout(() => setMessage(""), 3000);
+        if (completedTasks.includes(taskId)) return;
+        setLoadingTaskId(taskId);
+
+        if (restrictedReferralTasks[taskId] && referralCount < restrictedReferralTasks[taskId]) {
+            showMessage(`❌ You need at least ${restrictedReferralTasks[taskId]} referrals to complete this task.`);
+            setLoadingTaskId(null);
             return;
         }
-
-        setLoadingTaskId(taskId);
 
         if (taskId === "daily_reward") {
             const now = new Date();
-            const lastClaim = new Date(lastDailyClaim);
-            const diff = now - lastClaim;
-            const oneDay = 24 * 60 * 60 * 1000;
-
-            if (lastDailyClaim && diff < oneDay) {
-                setMessage("✅ Already claimed today!");
-                setTimeout(() => setMessage(""), 3000);
+            const last = new Date(lastDailyClaim);
+            const diff = now - last;
+            if (lastDailyClaim && diff < 86400000) {
+                const remaining = 86400000 - diff;
+                const hours = Math.floor(remaining / 3600000);
+                const minutes = Math.floor((remaining % 3600000) / 60000);
+                showMessage(`⏳ Come back in ${hours}h ${minutes}m`);
                 setLoadingTaskId(null);
                 return;
             }
-
-            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await new Promise((r) => setTimeout(r, 3000));
         } else {
             window.open(link, "_blank");
-            await new Promise((resolve) => setTimeout(resolve, 30000));
+            await new Promise((r) => setTimeout(r, 30000));
         }
 
         try {
-            await axios.post("http://localhost:5000/completeTask", {
-                telegramId,
-                taskType: taskId
-            });
-
+            const res = await axios.post("/completeTask", { telegramId, taskType: taskId });
             const updated = [...completedTasks, taskId];
             setCompletedTasks(updated);
             localStorage.setItem("completedTasks", JSON.stringify(updated));
-            setMessage("✅ Task completed!");
-
-            const delay = taskId === "daily_reward" ? 3000 : 30000;
-            setTimeout(() => {
-                fetchUserData();
-            }, delay);
-        } catch (error) {
-            console.error("Task error:", error);
-            setMessage("❌ Task failed!");
+            setXp(res.data.xp);
+            setCoins(res.data.coins);
+            setLevel(res.data.level);
+            showMessage("✅ Task completed!");
+        } catch (err) {
+            showMessage("❌ Task failed!");
         } finally {
             setLoadingTaskId(null);
-            setTimeout(() => setMessage(""), 3000);
         }
     };
 
+    const handleWithdraw = async () => {
+        if (coins < 500000) {
+            showMessage("❌ Minimum 500,000 MemeX required to withdraw.");
+            return;
+        }
+        if (!withdrawAddress) {
+            showMessage("❌ Please enter your wallet address.");
+            return;
+        }
+        try {
+            await axios.post("/withdraw", { telegramId, address: withdrawAddress });
+            setCoins(prev => prev - 500000);
+            showMessage("✅ Withdrawal requested!");
+        } catch (err) {
+            showMessage("❌ Withdrawal failed.");
+        }
+    };
+
+    const handleBuyUpgrade = async (type) => {
+        try {
+            const res = await axios.post("/buyUpgrade", { telegramId, upgradeType: type });
+            setCoins(res.data.coins);
+            if (res.data.clickPower) setClickPower(res.data.clickPower);
+            showMessage("✅ Upgrade purchased!");
+        } catch (error) {
+            showMessage("❌ " + (error.response?.data?.message || "Upgrade failed"));
+        }
+    };
+
+    useEffect(() => {
+        const tg = window.Telegram?.WebApp;
+        const userId = tg?.initDataUnsafe?.user?.id;
+        const ref = tg?.initDataUnsafe?.start_param?.replace("ref_", "");
+
+        if (userId) {
+            setTelegramId(userId.toString());
+            localStorage.setItem("referrer", ref || "");
+        } else {
+            setTelegramId("123456789");
+        }
+        tg?.expand();
+    }, []);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const ref = localStorage.getItem("referrer");
+                const res = await axios.get(`/getUserData?telegramId=${telegramId}${ref ? `&ref=${ref}` : ""}`);
+                setCoins(res.data.coins);
+                setClicksLeft(res.data.clicks);
+                setLevel(res.data.level);
+                setXp(res.data.experience);
+                setClickPower(res.data.clickPower);
+                setLastDailyClaim(res.data.lastDailyClaim);
+                setStreakCount(res.data.dailyStreak || 0);
+            } catch (err) {
+                console.error("User data error:", err);
+            }
+        };
+
+        const fetchReferralCount = async () => {
+            try {
+                const res = await axios.get(`/referralCount?telegramId=${telegramId}`);
+                setReferralCount(res.data.count);
+            } catch (err) {
+                console.error("Referral count error:", err);
+            }
+        };
+
+        if (telegramId) {
+            fetchUserData();
+            fetchReferralCount();
+            const saved = JSON.parse(localStorage.getItem("completedTasks")) || [];
+            setCompletedTasks(saved);
+        }
+    }, [telegramId]);
+
     return (
         <div className="App">
+            <div className="top-bar">
+                <div className="coins">💰 {coins.toLocaleString()}</div>
+                <div className="level">⭐ Level {level}</div>
+                <div className="withdraw">
+                    <input
+                        type="text"
+                        placeholder="Wallet address"
+                        value={withdrawAddress}
+                        onChange={(e) => setWithdrawAddress(e.target.value)}
+                    />
+                    <button onClick={handleWithdraw}>💸 Withdraw</button>
+                </div>
+            </div>
+
             {activeTab === "home" && (
                 <>
-                    <div className="top-bar">
-                        <div className="coins">💰 {coins.toLocaleString()}</div>
-                        <div className="level-container">
-                            ⭐ Level {level}
-                            <div className="xp-bar">
-                                <div
-                                    className="xp-fill"
-                                    style={{
-                                        width: `${Math.min(
-                                            100,
-                                            ((xp - levelThresholds[level - 1]) / (levelThresholds[level] - levelThresholds[level - 1])) * 100
-                                        )}%`
-                                    }}
-                                ></div>
-                            </div>
-                        </div>
-                        <button className="withdraw-btn" onClick={() => setShowWithdraw(!showWithdraw)}>Withdraw</button>
-                    </div>
-
-                    {showWithdraw && (
-                        <div className="withdraw-popup">
-                            <input
-                                type="text"
-                                placeholder="Enter wallet address"
-                                value={withdrawAddress}
-                                onChange={(e) => setWithdrawAddress(e.target.value)}
-                            />
-                            <button
-                                onClick={async () => {
-                                    if (coins < 500000) {
-                                        setMessage("❌ Minimum 500,000 MemeX required to withdraw.");
-                                        setTimeout(() => setMessage(""), 3000);
-                                        return;
-                                    }
-                                    await axios.post("http://localhost:5000/withdraw", {
-                                        telegramId,
-                                        address: withdrawAddress
-                                    });
-                                    setMessage("✅ Withdrawal request sent!");
-                                    setTimeout(() => setMessage(""), 3000);
-                                    setWithdrawAddress("");
-                                    setShowWithdraw(false);
-                                }}
-                            >
-                                Send
-                            </button>
-                        </div>
-                    )}
-
                     <div className="emoji-container">
-                        <img src="emoji.png" alt="emoji" className="emoji" onClick={handleClick} />
+                        <img src="emoji.png" alt="emoji" onClick={handleClick} />
                     </div>
-
                     <div className="click-bar-container">
                         <div className="click-bar">
                             <div className="click-bar-fill" style={{ width: `${(clicksLeft / 100) * 100}%` }}></div>
                         </div>
                         <div className="click-info">{clicksLeft}/100</div>
-                        <div className="click-note">Each click earns 20 points</div>
+                        <div className="click-note">Each click earns {clickPower} points</div>
                     </div>
                 </>
             )}
 
             {activeTab === "tasks" && (
                 <div className="task-list">
-                    {taskList.map((task) => (
+                    {[
+                        { id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
+                        { id: "telegram_join", title: "Join Telegram", link: "https://t.me/MemeXGloball", reward: "6,000 💰 / 300 XP" },
+                        { id: "twitter_like", title: "Like Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "4,000 💰 / 200 XP" },
+                        { id: "twitter_retweet", title: "Retweet Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "3,400 💰 / 170 XP" },
+                        { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
+                        { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
+                        { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" },
+                    ].map((task) => (
                         <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
-                            <div className="task-title">{task.title}</div>
-                            <div className="task-reward">{task.reward}</div>
-                            <button
-                                disabled={completedTasks.includes(task.id)}
-                                onClick={() => handleTaskClick(task.id, task.link)}
-                            >
+                            <div>{task.title}</div>
+                            <div>{task.reward}</div>
+                            <button onClick={() => handleTaskClick(task.id, task.link)}>
                                 {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
                             </button>
                         </div>
@@ -211,7 +225,33 @@ function App() {
             {activeTab === "leaderboard" && (
                 <div className="leaderboard">
                     <p>🏆 Leaderboard resets daily</p>
-                    {/* Leaderboard data will go here */}
+                    {leaderboardData.map((user) => (
+                        <div key={user.telegramId} className="leaderboard-item">
+                            {user.icon} #{user.rank} - {user.telegramId} - 💰 {user.coins.toLocaleString()} - ⭐ Level {user.level}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {activeTab === "referral" && telegramId && (
+                <div className="referral">
+                    <h3>🔗 Referral</h3>
+                    <p>Invite your friends and earn 5,000 💰 + 250 XP for each!</p>
+                    <p>👥 Referrals: {referralCount}</p>
+                    <p>Share this link:</p>
+                    <code>{`https://t.me/MemexGamebot?start=ref_${telegramId}`}</code>
+                </div>
+            )}
+
+            {activeTab === "market" && (
+                <div className="market">
+                    <h3>🛒 Market</h3>
+                    {marketItems.map((item) => (
+                        <div key={item.id} className="upgrade-card">
+                            <p>{item.label} ({item.price.toLocaleString()} 💰)</p>
+                            <button onClick={() => handleBuyUpgrade(item.id)}>Buy</button>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -219,6 +259,8 @@ function App() {
                 <button onClick={() => setActiveTab("home")}>🏠 Home</button>
                 <button onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
                 <button onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
+                <button onClick={() => setActiveTab("referral")}>🔗 Referral</button>
+                <button onClick={() => setActiveTab("market")}>🛒 Market</button>
             </div>
 
             {message && <div className="message-box">{message}</div>}
@@ -227,6 +269,27 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
