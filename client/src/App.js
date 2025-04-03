@@ -272,17 +272,6 @@ function App() {
                 </div>
             )}
 
-            {activeTab === "leaderboard" && (
-                <div className="leaderboard">
-                    <p>🏆 Leaderboard resets daily</p>
-                    {leaderboardData.map((user) => (
-                        <div key={user.telegramId} className="leaderboard-item">
-                            {user.icon} #{user.rank} - {user.username} - 💰 {user.coins.toLocaleString()} - ⭐ Level {user.level}
-                        </div>
-                    ))}
-                </div>
-            )}
-
             {activeTab === "referral" && telegramId && (
                 <div className="referral">
                     <h3>🔗 Referral</h3>
@@ -314,7 +303,6 @@ function App() {
             <div className="tabs">
                 <button onClick={() => setActiveTab("home")}>🏠 Home</button>
                 <button onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
-                <button onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
                 <button onClick={() => setActiveTab("referral")}>🔗 Referral</button>
                 <button onClick={() => setActiveTab("market")}>🛒 Market</button>
             </div>

@@ -12,6 +12,7 @@ mongoose.connect(process.env.MONGO_URI);
 
 const UserSchema = new mongoose.Schema({
     telegramId: { type: String, unique: true },
+    username: { type: String, default: '' },
     coins: { type: Number, default: 0 },
     clicks: { type: Number, default: 100 },
     lastClickTime: { type: Date, default: null },
@@ -40,13 +41,20 @@ function checkLevelUp(user) {
 }
 
 app.get("/getUserData", async (req, res) => {
-    const { telegramId, ref } = req.query;
+    const { telegramId, ref, username } = req.query;
+
     if (!telegramId) return res.status(400).json({ message: "telegramId is required" });
 
     let user = await User.findOne({ telegramId });
 
     if (!user) {
-        user = new User({ telegramId });
+        user = new User({
+            telegramId,
+            username: username || "Anonymous"  // Burada username gelmezse "Anonymous" olarak kaydediliyor
+        });
+
+        console.log("🆕 New user detected:", telegramId);
+        if (ref) console.log("🔗 Referrer ID:", ref);
 
         if (ref && ref !== telegramId) {
             const referrer = await User.findOne({ telegramId: ref });
@@ -56,11 +64,17 @@ app.get("/getUserData", async (req, res) => {
                 referrer.experience += 250;
                 referrer.referralCount += 1;
                 checkLevelUp(referrer);
-                await referrer.save();
+                await referrer.save();  // Referrer kaydediliyor
             }
         }
 
-        await user.save();
+        await user.save();  // Yeni kullanıcı kaydediliyor
+    } else {
+        // Eğer kullanıcı mevcutsa, username'i güncelle
+        if (!user.username && username) {
+            user.username = username;
+            await user.save();
+        }
     }
 
     res.json({
@@ -87,6 +101,7 @@ app.get("/referralCount", async (req, res) => {
 
 app.post("/click", async (req, res) => {
     const { telegramId } = req.body;
+
     if (!telegramId) return res.status(400).json({ message: "telegramId is required" });
 
     let user = await User.findOne({ telegramId });
@@ -148,10 +163,6 @@ app.post("/completeTask", async (req, res) => {
     user.experience += reward.xp;
     user.coins += reward.coins;
 
-    if (taskType === "invite_5_friends" || taskType === "invite_10_friends" || taskType === "invite_20_friends") {
-        user.referralCount += 1;
-    }
-
     if (taskType === "daily_reward") {
         user.lastDailyClaim = new Date();
     }
@@ -199,7 +210,7 @@ app.post("/buyUpgrade", async (req, res) => {
         "click_power": { cost: 8000, boost: 10 },
         "click_max": { cost: 20000, amount: 50 },
         "double_click": { cost: 20000, duration: 30 * 60 * 1000 },
-        "auto_click": { cost: 15000, duration: 60 * 60 * 1000 },
+        "auto_click": { cost: 15000, duration: 60 * 60 * 1000 }
     };
 
     const selected = upgrades[upgradeType];
@@ -231,23 +242,7 @@ app.post("/buyUpgrade", async (req, res) => {
     res.json({ message: "✅ Upgrade purchased!", coins: user.coins, clickPower: user.clickPower });
 });
 
-app.get("/leaderboard", async (req, res) => {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const users = await User.find({ lastClickTime: { $gte: since } }).sort({ coins: -1 }).limit(10);
-
-    const leaderboard = users.map((user, index) => {
-        const icons = ["🥇", "🥈", "🥉"];
-        return {
-            rank: index + 1,
-            icon: icons[index] || "🏅",
-            telegramId: user.telegramId,
-            coins: user.coins,
-            level: user.level
-        };
-    });
-
-    res.json(leaderboard);
-});
+// Leaderboard endpoint removed
 
 cron.schedule("*/20 * * * *", async () => {
     await User.updateMany({}, { $set: { clicks: 100 } });
@@ -262,6 +257,17 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+
+
+
+
+
+
+
+
+
+
+
 
 
 
