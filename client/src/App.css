@@ -59,10 +59,18 @@ body {
 }
 
 .emoji {
-    width: 100px;
-    height: 100px;
+    width: 100px;  /* Varsayılan boyut */
+    height: 100px; /* Varsayılan boyut */
     cursor: pointer;
     transition: transform 0.2s ease;
+}
+
+/* Mobil cihazlar için emoji boyutunu küçültme */
+@media (max-width: 768px) {
+    .emoji {
+        width: 80px;  /* Mobilde daha küçük boyut */
+        height: 80px; /* Mobilde daha küçük boyut */
+    }
 }
 
 .emoji:active {

@@ -15,7 +15,7 @@ function App() {
     const [referralCount, setReferralCount] = useState(0);
     const [activeTab, setActiveTab] = useState("home");
     const [message, setMessage] = useState("");
-    const [loading, setLoading] = useState(false); // loading durumunu tanımladık
+    const [loading, setLoading] = useState(false);
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
@@ -38,18 +38,18 @@ function App() {
     };
 
     const handleClick = async () => {
-        if (loading) return; // Eğer önceki işlem devam ediyorsa, yeni işlem yapılmasın.
-        setLoading(true);  // Yükleme başlatıyoruz
+        if (loading) return;
+        setLoading(true);
 
         try {
             const res = await axios.post("/click", { telegramId });
-            setCoins(prev => prev + res.data.coinsEarned);
+            setCoins((prev) => prev + res.data.coinsEarned);
             setClicksLeft(res.data.remainingClicks);
             showMessage(`+${res.data.coinsEarned} 💰`);
         } catch (err) {
             showMessage(err.response?.data?.message || "❌ Click failed");
         } finally {
-            setLoading(false);  // Yükleme tamamlanınca flag'i resetliyoruz
+            setLoading(false);
         }
     };
 
@@ -107,7 +107,7 @@ function App() {
         }
         try {
             await axios.post("/withdraw", { telegramId, address: withdrawAddress });
-            setCoins(prev => prev - 500000);
+            setCoins((prev) => prev - 500000);
             showMessage("✅ Withdrawal requested!");
         } catch (err) {
             showMessage("❌ Withdrawal failed.");
@@ -154,12 +154,12 @@ function App() {
             }
         };
 
-        const fetchLeaderboardData = async () => {
+        const fetchLeaderboard = async () => {
             try {
                 const res = await axios.get("/leaderboard");
-                setLeaderboardData(res.data); // Leaderboard verilerini buradan güncelliyoruz
+                setLeaderboardData(res.data);
             } catch (err) {
-                console.error("Leaderboard fetch error:", err);
+                console.error("Leaderboard data error:", err);
             }
         };
 
@@ -174,7 +174,7 @@ function App() {
 
         if (telegramId) {
             fetchUserData();
-            fetchLeaderboardData(); // Liderlik tablosu verisini alıyoruz
+            fetchLeaderboard(); // Fetch leaderboard data
             fetchReferralCount();
         }
     }, [telegramId]);
@@ -238,7 +238,7 @@ function App() {
                     <p>🏆 Leaderboard resets daily</p>
                     {leaderboardData.map((user) => (
                         <div key={user.telegramId} className="leaderboard-item">
-                            {user.icon} #{user.rank} - {user.telegramId} - 💰 {user.coins.toLocaleString()} - ⭐ Level {user.level}
+                            {user.icon} #{user.rank} - {user.username} - 💰 {user.coins.toLocaleString()} - ⭐ Level {user.level}
                         </div>
                     ))}
                 </div>
@@ -280,6 +280,10 @@ function App() {
 }
 
 export default App;
+
+
+
+
 
 
 
