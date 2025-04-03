@@ -38,17 +38,24 @@ function App() {
     };
 
     const handleClick = async () => {
-        if (loading) return;
-        setLoading(true);
+        if (loading) return;  // Eğer başka bir işlem devam ediyorsa yeni tıklama alınmasın
+        setLoading(true);  // Tıklama işlemi başladığında loading'i true yapıyoruz
 
         try {
+            // API çağrısı yapılırken tüm gerekli veriler alınacak
             const res = await axios.post("/click", { telegramId });
+
+            // Kullanıcı verilerini güncelle
             setCoins((prev) => prev + res.data.coinsEarned);
             setClicksLeft(res.data.remainingClicks);
+
+            // Mesaj göster
             showMessage(`+${res.data.coinsEarned} 💰`);
         } catch (err) {
+            // Hata durumunda mesajı göster
             showMessage(err.response?.data?.message || "❌ Click failed");
         } finally {
+            // İşlem tamamlandığında loading'i false yapıyoruz
             setLoading(false);
         }
     };
