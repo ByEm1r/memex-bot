@@ -13,11 +13,9 @@ html, body {
 
 /* Uygulama Konteyneri */
 .App {
-    max-width: 500px;
-    width: 100%;
-    margin: 0 auto;
+    max-width: 100%;
     padding: 16px;
-    box-sizing: border-box;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -33,6 +31,7 @@ html, body {
     gap: 8px;
     padding: 8px;
     font-size: 14px;
+    width: 100%;
 }
 
 .top-bar .coins,
@@ -48,7 +47,8 @@ html, body {
 /* XP Barı */
 .xp-bar {
     height: 6px;
-    width: 100px;
+    width: 100%;
+    max-width: 300px; /* Genişlik ayarı */
     background-color: #333;
     border-radius: 10px;
     overflow: hidden;
@@ -68,6 +68,7 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 0 16px;
 }
 
 /* Emoji */
@@ -79,16 +80,26 @@ html, body {
 }
 
 .emoji {
-    width: 150px;
-    height: 150px;
-    max-width: 50vw;
-    max-height: 50vw;
+    width: 40vw;    /* Görselin genişliği ekranın %40'ı kadar */
+    height: 40vw;   /* Görselin yüksekliği ekranın %40'ı kadar */
+    max-width: 150px; /* Görselin genişliğini maksimum 150px ile sınırlıyoruz */
+    max-height: 150px; /* Görselin yüksekliğini maksimum 150px ile sınırlıyoruz */
     cursor: pointer;
     transition: transform 0.05s ease;
 }
 
 .emoji:active {
     transform: scale(0.90);
+}
+
+/* Küçük ekranlarda boyutu biraz daha büyük yapabiliriz */
+@media only screen and (max-width: 400px) {
+    .emoji {
+        width: 50vw;
+        height: 50vw;
+        max-width: 120px;
+        max-height: 120px;
+    }
 }
 
 /* Click Bar */
@@ -112,21 +123,6 @@ html, body {
     height: 100%;
     background-color: #007bff;
     transition: width 0.1s ease;
-}
-
-/* Click info */
-.click-info {
-    margin-top: 4px;
-    font-size: 16px;
-    text-align: center;
-    transition: font-size 0.05s ease-in-out;
-}
-
-.click-note {
-    font-size: 14px;
-    color: #bbbbbb;
-    margin-top: 6px;
-    text-align: center;
 }
 
 /* Market Kartı */
@@ -161,7 +157,7 @@ html, body {
 }
 
 .upgrade-card button {
-    padding: 10px 20px;
+    padding: 12px 20px;
     font-size: 16px;
     background-color: #007bff;
     color: white;
@@ -170,6 +166,7 @@ html, body {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-left: 20px;
+    width: auto;
 }
 
 .upgrade-card button:hover {
@@ -183,13 +180,87 @@ html, body {
 
 @media (max-width: 768px) {
     .upgrade-card {
-        flex-direction: column;
+        flex-direction: column; /* Mobilde dikey hizalama */
         align-items: stretch;
     }
 
     .upgrade-card button {
-        margin-left: 0;
         width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* Alt Menü */
+.tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0 18px;
+    border-top: 1px solid #333;
+    z-index: 1000;
+    gap: 4px;
+}
+
+.tabs button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    padding: 8px;
+    width: auto;
+}
+
+.tabs button:hover,
+.tabs button.active {
+    color: #00d8ff;
+    font-weight: bold;
+    border-bottom: 2px solid #00d8ff;
+}
+
+/* Media Queries ile Responsive Düzenlemeler */
+@media only screen and (max-width: 768px) {
+    .top-bar {
+        flex-direction: column; /* Mobilde dikey hizalama */
+        align-items: flex-start;
+    }
+
+    .emoji {
+        width: 120px;
+        height: 120px;
+    }
+
+    .click-bar-container {
+        width: 100%;
+        padding: 10px;
+    }
+
+    .upgrade-card {
+        flex-direction: column; /* Kartlar dikey hizalamalı */
+        align-items: stretch;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .emoji {
+        width: 100px;
+        height: 100px;
+    }
+
+    .click-info {
+        font-size: 14px;
+    }
+
+    .tabs {
+        padding: 10px 0;
     }
 }
 
@@ -313,52 +384,25 @@ html, body {
     font-weight: 500;
 }
 
-/* Alt Menü */
-.tabs {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #1a1a1a;
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 0 18px;
-    border-top: 1px solid #333;
-    z-index: 1000;
-    gap: 4px;
-}
-
-.tabs button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-}
-
-.tabs button:hover,
-.tabs button.active {
-    color: #00d8ff;
-    font-weight: bold;
-    border-bottom: 2px solid #00d8ff;
-}
-
 /* Ekstra küçük ekranlar */
-@media only screen and (max-width: 400px) {
+@media only screen and (max-width: 375px) {
     .top-bar {
         flex-direction: column;
         align-items: flex-start;
     }
 
     .emoji {
-        width: 120px;
-        height: 120px;
+        width: 100px;
+        height: 100px;
     }
 
     .click-info {
         font-size: 14px;
     }
 }
+
+
+
 
 
 

@@ -4,6 +4,16 @@ import "./App.css";
 
 axios.defaults.baseURL = "https://memex-server.onrender.com";
 
+// Backend'e veri göndermek için createUser fonksiyonunu tanımlıyoruz
+const createUser = async (userData) => {
+    try {
+        const response = await axios.post('/createUser', userData);
+        console.log("User created successfully:", response.data);
+    } catch (error) {
+        console.error("Error creating user:", error);
+    }
+};
+
 function App() {
     const [telegramId, setTelegramId] = useState(null);
     const [username, setUsername] = useState("");
@@ -137,6 +147,26 @@ function App() {
             localStorage.setItem("referrer", ref || "");
             localStorage.setItem("username", username || "Anonymous");
             setUsername(username || "Anonymous");
+
+            // Kullanıcı Verisini Backend'e Gönder
+            const userData = {
+                telegramId: userId.toString(),
+                username: username || "Anonymous",
+                coins: 0,
+                clicks: 100,
+                level: 1,
+                experience: 0,
+                totalClicks: 0,
+                powerUps: [],
+                referrer: ref || null,
+                referralCount: 0,
+                doubleClick: false,
+                autoClick: false,
+                clickPower: 50,
+            };
+
+            // Kullanıcıyı backend'e gönderiyoruz
+            createUser(userData);  // Backend'e gönderme
         } else {
             setTelegramId("123456789");
         }
@@ -207,7 +237,7 @@ function App() {
             {activeTab === "home" && (
                 <>
                     <div className="emoji-container">
-                        <img src="emoji.png" alt="emoji" onClick={handleClick} />
+                        <img src={`${process.env.PUBLIC_URL}/emoji.png`} alt="emoji" onClick={handleClick} />
                     </div>
                     <div className="click-bar-container">
                         <div className="click-bar">
@@ -295,6 +325,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
