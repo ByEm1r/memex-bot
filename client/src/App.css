@@ -86,8 +86,8 @@ html, body {
 
 @media (max-width: 768px) {
     .emoji {
-        width: 90px;
-        height: 90px;
+        width: 120px;
+        height: 120px;
     }
 }
 
@@ -357,8 +357,8 @@ html, body {
     }
 
     .emoji {
-        width: 90px;
-        height: 90px;
+        width: 150px;
+        height: 150px;
     }
 
     .upgrade-card p {
@@ -378,6 +378,7 @@ html, body {
         font-size: 14px;
     }
 }
+
 
 
 

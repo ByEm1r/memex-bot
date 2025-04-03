@@ -19,13 +19,12 @@ function App() {
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
-    const [withdrawOpen, setWithdrawOpen] = useState(false);
-    const [marketItems] = useState([
+
+    const marketItems = [
         { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
         { id: "click_max", label: "🔋 +50 Max Clicks", price: 20000 },
         { id: "double_click", label: "🌀 2x Click Reward (30 min)", price: 20000 },
-        { id: "auto_click", label: "🤖 Auto-Clicker (1 hour)", price: 15000 }
-    ]);
+    ];
 
     const restrictedReferralTasks = {
         invite_5_friends: 5,
@@ -110,7 +109,6 @@ function App() {
             await axios.post("/withdraw", { telegramId, address: withdrawAddress });
             setCoins((prev) => prev - 500000);
             showMessage("✅ Withdrawal requested!");
-            setWithdrawOpen(false);
         } catch (err) {
             showMessage("❌ Withdrawal failed.");
         }
@@ -186,25 +184,21 @@ function App() {
             <div className="top-bar">
                 <div className="coins">💰 {coins.toLocaleString()}</div>
                 <div className="level">⭐ Level {level}</div>
-                <button className="withdraw-btn" onClick={() => setWithdrawOpen(!withdrawOpen)}>💸</button>
-            </div>
-
-            {withdrawOpen && (
-                <div className="withdraw-popup">
+                <div className="withdraw">
                     <input
                         type="text"
                         placeholder="Wallet address"
                         value={withdrawAddress}
                         onChange={(e) => setWithdrawAddress(e.target.value)}
                     />
-                    <button onClick={handleWithdraw}>Send</button>
+                    <button onClick={handleWithdraw}>💸 Withdraw</button>
                 </div>
-            )}
+            </div>
 
             {activeTab === "home" && (
-                <div className="content">
+                <>
                     <div className="emoji-container">
-                        <img src="emoji.png" alt="emoji" className="emoji" onClick={handleClick} />
+                        <img src="emoji.png" alt="emoji" onClick={handleClick} />
                     </div>
                     <div className="click-bar-container">
                         <div className="click-bar">
@@ -213,7 +207,7 @@ function App() {
                         <div className="click-info">{clicksLeft}/100</div>
                         <div className="click-note">Each click earns {clickPower} points</div>
                     </div>
-                </div>
+                </>
             )}
 
             {activeTab === "tasks" && (
@@ -272,11 +266,11 @@ function App() {
             )}
 
             <div className="tabs">
-                <button className={activeTab === "home" ? "active" : ""} onClick={() => setActiveTab("home")}>🏠 Home</button>
-                <button className={activeTab === "tasks" ? "active" : ""} onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
-                <button className={activeTab === "leaderboard" ? "active" : ""} onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
-                <button className={activeTab === "referral" ? "active" : ""} onClick={() => setActiveTab("referral")}>🔗 Referral</button>
-                <button className={activeTab === "market" ? "active" : ""} onClick={() => setActiveTab("market")}>🛒 Market</button>
+                <button onClick={() => setActiveTab("home")}>🏠 Home</button>
+                <button onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
+                <button onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
+                <button onClick={() => setActiveTab("referral")}>🔗 Referral</button>
+                <button onClick={() => setActiveTab("market")}>🛒 Market</button>
             </div>
 
             {message && <div className="message-box">{message}</div>}
@@ -285,6 +279,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
