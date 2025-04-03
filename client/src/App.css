@@ -1,22 +1,35 @@
 /* Genel Stil */
-body {
+html, body {
     margin: 0;
+    padding: 0;
+    height: 100%;
     font-family: 'Segoe UI', sans-serif;
     background-color: #0d0d0d;
     color: white;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
+/* Uygulama Konteyneri */
 .App {
-    text-align: center;
-    padding-bottom: 80px;
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
+    padding-bottom: 80px;
 }
 
+/* Üst Bar */
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 12px;
     font-size: 16px;
 }
 
@@ -28,24 +41,14 @@ body {
     gap: 6px;
 }
 
-.withdraw {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-.withdraw input {
-    width: 100%;
-    max-width: 250px;
-}
-
+/* XP Barı */
 .xp-bar {
     height: 6px;
-    width: 80px;
-    background-color: #444;
-    border-radius: 4px;
+    width: 100px;
+    background-color: #333;
+    border-radius: 10px;
     overflow: hidden;
+    margin-top: 4px;
 }
 
 .xp-fill {
@@ -54,37 +57,49 @@ body {
     transition: width 0.3s ease;
 }
 
+/* İçerik Ortalaması */
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Emoji */
 .emoji-container {
-    margin: 30px auto 10px;
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
 }
 
 .emoji {
-    width: 100px;  /* Varsayılan boyut */
-    height: 100px; /* Varsayılan boyut */
+    width: 120px;
+    height: 120px;
     cursor: pointer;
     transition: transform 0.2s ease;
-}
-
-/* Mobil cihazlar için emoji boyutunu küçültme */
-@media (max-width: 768px) {
-    .emoji {
-        width: 80px;  /* Mobilde daha küçük boyut */
-        height: 80px; /* Mobilde daha küçük boyut */
-    }
 }
 
 .emoji:active {
     transform: scale(0.95);
 }
 
+@media (max-width: 768px) {
+    .emoji {
+        width: 90px;
+        height: 90px;
+    }
+}
+
+/* Click Bar */
 .click-bar-container {
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 .click-bar {
     height: 12px;
-    width: 80%;
-    max-width: 300px;
+    width: 100%;
+    max-width: 320px;
     margin: 0 auto;
     background-color: #333;
     border-radius: 8px;
@@ -112,7 +127,7 @@ body {
 .upgrade-card {
     background-color: #2a2a2a;
     padding: 20px;
-    margin: 10px 0;
+    margin: 10px auto;
     width: 100%;
     max-width: 400px;
     border-radius: 12px;
@@ -148,7 +163,6 @@ body {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    width: auto;
     margin-left: 20px;
 }
 
@@ -173,6 +187,7 @@ body {
     }
 }
 
+/* Görev Listesi */
 .task-list {
     padding: 20px;
     display: flex;
@@ -218,6 +233,7 @@ body {
     opacity: 0.6;
 }
 
+/* Mesaj Kutusu */
 .message-box {
     position: fixed;
     bottom: 80px;
@@ -234,22 +250,26 @@ body {
     z-index: 999;
 }
 
+/* Withdraw Pop-up */
 .withdraw-popup {
     position: absolute;
-    top: 60px;
-    right: 20px;
+    top: 48px;
+    right: 12px;
     background-color: #111;
     border: 1px solid #444;
     padding: 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    z-index: 100;
+    align-items: stretch;
+    gap: 10px;
+    z-index: 1000;
+    width: 240px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
 .withdraw-popup input {
-    padding: 6px;
+    padding: 8px;
     border-radius: 4px;
     border: 1px solid #666;
     background-color: #222;
@@ -257,29 +277,39 @@ body {
 }
 
 .withdraw-popup button {
-    padding: 6px;
+    padding: 8px;
     background-color: #00b894;
     color: white;
+    font-weight: 600;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    transition: background 0.2s ease;
 }
 
+.withdraw-popup button:hover {
+    background-color: #00a67c;
+}
+
+/* Liderlik Tablosu */
 .leaderboard-item {
     padding: 8px;
     border-bottom: 1px solid #ccc;
     font-weight: 500;
 }
 
+/* Alt Menü */
 .tabs {
     position: fixed;
     bottom: 0;
+    left: 0;
     width: 100%;
     background-color: #1a1a1a;
     display: flex;
     justify-content: space-around;
     padding: 10px 0;
     border-top: 1px solid #333;
+    z-index: 1000;
 }
 
 .tabs button {
@@ -290,13 +320,23 @@ body {
     cursor: pointer;
 }
 
-.tabs button:hover {
+.tabs button:hover,
+.tabs button.active {
     color: #00d8ff;
+    font-weight: bold;
+    border-bottom: 2px solid #00d8ff;
 }
 
+/* Mobil Uyum */
 @media only screen and (max-width: 768px) {
     .App {
-        padding: 10px;
+        padding: 12px;
+        max-width: 100%;
+    }
+
+    .withdraw-popup {
+        right: 50%;
+        transform: translateX(50%);
     }
 
     .tabs button {
@@ -311,7 +351,39 @@ body {
     .market {
         max-width: 100%;
     }
+
+    .emoji-container {
+        margin: 10px auto;
+    }
+
+    .emoji {
+        width: 90px;
+        height: 90px;
+    }
+
+    .upgrade-card p {
+        font-size: 16px;
+    }
+
+    .upgrade-card span {
+        font-size: 14px;
+    }
+
+    .upgrade-card button {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+
+    .top-bar {
+        font-size: 14px;
+    }
 }
+
+
+
+
+
+
 
 
 

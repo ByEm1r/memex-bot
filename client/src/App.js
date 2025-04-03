@@ -19,6 +19,7 @@ function App() {
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
     const [marketItems] = useState([
         { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
         { id: "click_max", label: "🔋 +50 Max Clicks", price: 20000 },
@@ -109,6 +110,7 @@ function App() {
             await axios.post("/withdraw", { telegramId, address: withdrawAddress });
             setCoins((prev) => prev - 500000);
             showMessage("✅ Withdrawal requested!");
+            setWithdrawOpen(false);
         } catch (err) {
             showMessage("❌ Withdrawal failed.");
         }
@@ -174,7 +176,7 @@ function App() {
 
         if (telegramId) {
             fetchUserData();
-            fetchLeaderboard(); // Fetch leaderboard data
+            fetchLeaderboard();
             fetchReferralCount();
         }
     }, [telegramId]);
@@ -184,21 +186,25 @@ function App() {
             <div className="top-bar">
                 <div className="coins">💰 {coins.toLocaleString()}</div>
                 <div className="level">⭐ Level {level}</div>
-                <div className="withdraw">
+                <button className="withdraw-btn" onClick={() => setWithdrawOpen(!withdrawOpen)}>💸</button>
+            </div>
+
+            {withdrawOpen && (
+                <div className="withdraw-popup">
                     <input
                         type="text"
                         placeholder="Wallet address"
                         value={withdrawAddress}
                         onChange={(e) => setWithdrawAddress(e.target.value)}
                     />
-                    <button onClick={handleWithdraw}>💸 Withdraw</button>
+                    <button onClick={handleWithdraw}>Send</button>
                 </div>
-            </div>
+            )}
 
             {activeTab === "home" && (
-                <>
+                <div className="content">
                     <div className="emoji-container">
-                        <img src="emoji.png" alt="emoji" onClick={handleClick} />
+                        <img src="emoji.png" alt="emoji" className="emoji" onClick={handleClick} />
                     </div>
                     <div className="click-bar-container">
                         <div className="click-bar">
@@ -207,29 +213,28 @@ function App() {
                         <div className="click-info">{clicksLeft}/100</div>
                         <div className="click-note">Each click earns {clickPower} points</div>
                     </div>
-                </>
+                </div>
             )}
 
             {activeTab === "tasks" && (
                 <div className="task-list">
-                    {[
-                        { id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
+                    {[{ id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
                         { id: "telegram_join", title: "Join Telegram", link: "https://t.me/MemeXGloball", reward: "6,000 💰 / 300 XP" },
                         { id: "twitter_like", title: "Like Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "4,000 💰 / 200 XP" },
                         { id: "twitter_retweet", title: "Retweet Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "3,400 💰 / 170 XP" },
                         { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
-                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }
-                    ].map((task) => (
-                        <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
-                            <div>{task.title}</div>
-                            <div>{task.reward}</div>
-                            <button onClick={() => handleTaskClick(task.id, task.link)}>
-                                {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
-                            </button>
-                        </div>
-                    ))}
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }]
+                        .map((task) => (
+                            <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
+                                <div>{task.title}</div>
+                                <div>{task.reward}</div>
+                                <button onClick={() => handleTaskClick(task.id, task.link)}>
+                                    {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
+                                </button>
+                            </div>
+                        ))}
                 </div>
             )}
 
@@ -267,11 +272,11 @@ function App() {
             )}
 
             <div className="tabs">
-                <button onClick={() => setActiveTab("home")}>🏠 Home</button>
-                <button onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
-                <button onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
-                <button onClick={() => setActiveTab("referral")}>🔗 Referral</button>
-                <button onClick={() => setActiveTab("market")}>🛒 Market</button>
+                <button className={activeTab === "home" ? "active" : ""} onClick={() => setActiveTab("home")}>🏠 Home</button>
+                <button className={activeTab === "tasks" ? "active" : ""} onClick={() => setActiveTab("tasks")}>🧩 Tasks</button>
+                <button className={activeTab === "leaderboard" ? "active" : ""} onClick={() => setActiveTab("leaderboard")}>📊 Leaderboard</button>
+                <button className={activeTab === "referral" ? "active" : ""} onClick={() => setActiveTab("referral")}>🔗 Referral</button>
+                <button className={activeTab === "market" ? "active" : ""} onClick={() => setActiveTab("market")}>🛒 Market</button>
             </div>
 
             {message && <div className="message-box">{message}</div>}
@@ -280,6 +285,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
