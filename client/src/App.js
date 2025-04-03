@@ -9,14 +9,13 @@ function App() {
     const [coins, setCoins] = useState(0);
     const [clicksLeft, setClicksLeft] = useState(0);
     const [level, setLevel] = useState(1);
-    const [xp, setXp] = useState(0);
     const [clickPower, setClickPower] = useState(50);
     const [lastDailyClaim, setLastDailyClaim] = useState(null);
     const [completedTasks, setCompletedTasks] = useState([]);
     const [referralCount, setReferralCount] = useState(0);
-    const [streakCount, setStreakCount] = useState(0);
     const [activeTab, setActiveTab] = useState("home");
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false); // loading durumunu tanımladık
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
@@ -39,16 +38,18 @@ function App() {
     };
 
     const handleClick = async () => {
+        if (loading) return; // Eğer önceki işlem devam ediyorsa, yeni işlem yapılmasın.
+        setLoading(true);  // Yükleme başlatıyoruz
+
         try {
-            const res = await axios.post("/click", { telegramId });  // API'ye POST isteği
-
-            console.log("API Response:", res.data);  // API yanıtını konsola yazdırıyoruz
-
-            setCoins(prev => prev + res.data.coinsEarned);  // Coin'leri güncelliyoruz
-            setClicksLeft(res.data.remainingClicks);  // Kalan tıklama sayısını güncelliyoruz
-            showMessage(`+${res.data.coinsEarned} 💰`);  // Kullanıcıya mesaj gösteriyoruz
+            const res = await axios.post("/click", { telegramId });
+            setCoins(prev => prev + res.data.coinsEarned);
+            setClicksLeft(res.data.remainingClicks);
+            showMessage(`+${res.data.coinsEarned} 💰`);
         } catch (err) {
-            showMessage(err.response?.data?.message || "❌ Click failed");  // Hata mesajı
+            showMessage(err.response?.data?.message || "❌ Click failed");
+        } finally {
+            setLoading(false);  // Yükleme tamamlanınca flag'i resetliyoruz
         }
     };
 
@@ -85,7 +86,6 @@ function App() {
             const updated = [...completedTasks, taskId];
             setCompletedTasks(updated);
             localStorage.setItem("completedTasks", JSON.stringify(updated));
-            setXp(res.data.xp);
             setCoins(res.data.coins);
             setLevel(res.data.level);
             showMessage("✅ Task completed!");
@@ -147,12 +147,19 @@ function App() {
                 setCoins(res.data.coins);
                 setClicksLeft(res.data.clicks);
                 setLevel(res.data.level);
-                setXp(res.data.experience);
                 setClickPower(res.data.clickPower);
                 setLastDailyClaim(res.data.lastDailyClaim);
-                setStreakCount(res.data.dailyStreak || 0);
             } catch (err) {
                 console.error("User data error:", err);
+            }
+        };
+
+        const fetchLeaderboardData = async () => {
+            try {
+                const res = await axios.get("/leaderboard");
+                setLeaderboardData(res.data); // Leaderboard verilerini buradan güncelliyoruz
+            } catch (err) {
+                console.error("Leaderboard fetch error:", err);
             }
         };
 
@@ -167,9 +174,8 @@ function App() {
 
         if (telegramId) {
             fetchUserData();
+            fetchLeaderboardData(); // Liderlik tablosu verisini alıyoruz
             fetchReferralCount();
-            const saved = JSON.parse(localStorage.getItem("completedTasks")) || [];
-            setCompletedTasks(saved);
         }
     }, [telegramId]);
 
@@ -214,7 +220,7 @@ function App() {
                         { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
-                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" },
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }
                     ].map((task) => (
                         <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
                             <div>{task.title}</div>
@@ -274,6 +280,11 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
 
 
 
