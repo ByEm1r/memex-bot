@@ -21,24 +21,28 @@ html, body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    padding-bottom: 80px;
+    padding-bottom: 100px;
 }
 
 /* Üst Bar */
 .top-bar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    font-size: 16px;
+    gap: 8px;
+    padding: 8px;
+    font-size: 14px;
 }
 
 .top-bar .coins,
-.level-container,
-.withdraw-btn {
+.top-bar .level-container,
+.top-bar .withdraw-btn {
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 100px;
 }
 
 /* XP Barı */
@@ -75,8 +79,10 @@ html, body {
 }
 
 .emoji {
-    width: 80px; /* Emojiyi daha küçük yapalım */
-    height: 80px; /* Boyut oranını koruyarak */
+    width: 150px;
+    height: 150px;
+    max-width: 50vw;
+    max-height: 50vw;
     cursor: pointer;
     transition: transform 0.05s ease;
 }
@@ -85,31 +91,17 @@ html, body {
     transform: scale(0.90);
 }
 
-/* Mobil Uyum */
-@media (max-width: 768px) {
-    .emoji {
-        width: 70px;  /* Mobilde daha da küçültebiliriz */
-        height: 70px;
-    }
-}
-
-@media (max-width: 480px) {
-    .emoji {
-        width: 60px;  /* En küçük ekranlar için boyutu küçültüyoruz */
-        height: 60px;
-    }
-}
-
 /* Click Bar */
 .click-bar-container {
     margin-top: 20px;
-    text-align: center; /* Bu satırı ekleyerek yazıların barın altına hizalanmasını sağlıyoruz */
+    text-align: center;
+    width: 100%;
 }
 
 .click-bar {
     height: 12px;
     width: 100%;
-    max-width: 320px;
+    max-width: 90%;
     margin: 0 auto;
     background-color: #333;
     border-radius: 8px;
@@ -125,16 +117,16 @@ html, body {
 /* Click info */
 .click-info {
     margin-top: 4px;
-    font-size: 16px;  /* 16px olarak ayarlandı */
-    text-align: center; /* Yazının barın alt kısmına düzgün yerleşmesi için */
-    transition: font-size 0.05s ease-in-out; /* Tıklama hızı ile uyumlu */
+    font-size: 16px;
+    text-align: center;
+    transition: font-size 0.05s ease-in-out;
 }
 
 .click-note {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 4px;
-    text-align: center; /* Burada da hizalamayı sağlıyoruz */
+    font-size: 14px;
+    color: #bbbbbb;
+    margin-top: 6px;
+    text-align: center;
 }
 
 /* Market Kartı */
@@ -207,6 +199,9 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    overflow-y: auto;
+    max-height: calc(100vh - 220px);
+    padding-bottom: 100px;
 }
 
 .task-card {
@@ -266,20 +261,26 @@ html, body {
 
 /* Withdraw Pop-up */
 .withdraw-popup {
+    display: none;
     position: absolute;
     top: 48px;
-    right: 12px;
+    left: 50%;
+    transform: translateX(-50%);
     background-color: #111;
     border: 1px solid #444;
     padding: 12px;
     border-radius: 8px;
-    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
     z-index: 1000;
     width: 240px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Tıklanınca gösterilecek sınıf */
+.withdraw-popup.show {
+    display: flex;
 }
 
 .withdraw-popup input {
@@ -321,9 +322,10 @@ html, body {
     background-color: #1a1a1a;
     display: flex;
     justify-content: space-around;
-    padding: 10px 0;
+    padding: 12px 0 18px;
     border-top: 1px solid #333;
     z-index: 1000;
+    gap: 4px;
 }
 
 .tabs button {
@@ -341,61 +343,23 @@ html, body {
     border-bottom: 2px solid #00d8ff;
 }
 
-/* Mobil Uyum */
-@media only screen and (max-width: 768px) {
-    .App {
-        padding: 12px;
-        max-width: 100%;
-    }
-
-    .withdraw-popup {
-        right: 50%;
-        transform: translateX(50%);
-    }
-
-    .tabs button {
-        font-size: 14px;
-        padding: 6px;
-    }
-
-    .task-card {
-        padding: 10px;
-    }
-
-    .market {
-        max-width: 100%;
-    }
-
-    .emoji-container {
-        margin: 20px auto;
-        display: flex;
-        justify-content: center;
+/* Ekstra küçük ekranlar */
+@media only screen and (max-width: 400px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .emoji {
         width: 120px;
         height: 120px;
-        cursor: pointer;
-        transition: transform 0.2s ease;
     }
 
-    .upgrade-card p {
-        font-size: 16px;
-    }
-
-    .upgrade-card span {
-        font-size: 14px;
-    }
-
-    .upgrade-card button {
-        font-size: 14px;
-        padding: 8px 16px;
-    }
-
-    .top-bar {
+    .click-info {
         font-size: 14px;
     }
 }
+
 
 
 

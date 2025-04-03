@@ -6,6 +6,7 @@ axios.defaults.baseURL = "https://memex-server.onrender.com";
 
 function App() {
     const [telegramId, setTelegramId] = useState(null);
+    const [username, setUsername] = useState("");
     const [coins, setCoins] = useState(0);
     const [clicksLeft, setClicksLeft] = useState(0);
     const [level, setLevel] = useState(1);
@@ -19,6 +20,7 @@ function App() {
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
+    const [withdrawVisible, setWithdrawVisible] = useState(false);
 
     const marketItems = [
         { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
@@ -38,24 +40,16 @@ function App() {
     };
 
     const handleClick = async () => {
-        if (loading) return;  // Eğer başka bir işlem devam ediyorsa yeni tıklama alınmasın
-        setLoading(true);  // Tıklama işlemi başladığında loading'i true yapıyoruz
-
+        if (loading) return;
+        setLoading(true);
         try {
-            // API çağrısı yapılırken tüm gerekli veriler alınacak
             const res = await axios.post("/click", { telegramId });
-
-            // Kullanıcı verilerini güncelle
             setCoins((prev) => prev + res.data.coinsEarned);
             setClicksLeft(res.data.remainingClicks);
-
-            // Mesaj göster
             showMessage(`+${res.data.coinsEarned} 💰`);
         } catch (err) {
-            // Hata durumunda mesajı göster
             showMessage(err.response?.data?.message || "❌ Click failed");
         } finally {
-            // İşlem tamamlandığında loading'i false yapıyoruz
             setLoading(false);
         }
     };
@@ -136,10 +130,13 @@ function App() {
         const tg = window.Telegram?.WebApp;
         const userId = tg?.initDataUnsafe?.user?.id;
         const ref = tg?.initDataUnsafe?.start_param?.replace("ref_", "");
+        const username = tg?.initDataUnsafe?.user?.username;
 
         if (userId) {
             setTelegramId(userId.toString());
             localStorage.setItem("referrer", ref || "");
+            localStorage.setItem("username", username || "Anonymous");
+            setUsername(username || "Anonymous");
         } else {
             setTelegramId("123456789");
         }
@@ -150,7 +147,7 @@ function App() {
         const fetchUserData = async () => {
             try {
                 const ref = localStorage.getItem("referrer");
-                const res = await axios.get(`/getUserData?telegramId=${telegramId}${ref ? `&ref=${ref}` : ""}`);
+                const res = await axios.get(`/getUserData?telegramId=${telegramId}${ref ? `&ref=${ref}` : ""}&username=${username}`);
                 setCoins(res.data.coins);
                 setClicksLeft(res.data.clicks);
                 setLevel(res.data.level);
@@ -184,22 +181,27 @@ function App() {
             fetchLeaderboard();
             fetchReferralCount();
         }
-    }, [telegramId]);
+    }, [telegramId, username]);
 
     return (
         <div className="App">
             <div className="top-bar">
                 <div className="coins">💰 {coins.toLocaleString()}</div>
                 <div className="level">⭐ Level {level}</div>
-                <div className="withdraw">
-                    <input
-                        type="text"
-                        placeholder="Wallet address"
-                        value={withdrawAddress}
-                        onChange={(e) => setWithdrawAddress(e.target.value)}
-                    />
-                    <button onClick={handleWithdraw}>💸 Withdraw</button>
+                <div className="withdraw-btn">
+                    <button onClick={() => setWithdrawVisible(!withdrawVisible)}>💸 Withdraw</button>
                 </div>
+                {withdrawVisible && (
+                    <div className="withdraw-popup show">
+                        <input
+                            type="text"
+                            placeholder="Wallet address"
+                            value={withdrawAddress}
+                            onChange={(e) => setWithdrawAddress(e.target.value)}
+                        />
+                        <button onClick={handleWithdraw}>Send</button>
+                    </div>
+                )}
             </div>
 
             {activeTab === "home" && (
@@ -219,23 +221,24 @@ function App() {
 
             {activeTab === "tasks" && (
                 <div className="task-list">
-                    {[{ id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
+                    {[
+                        { id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
                         { id: "telegram_join", title: "Join Telegram", link: "https://t.me/MemeXGloball", reward: "6,000 💰 / 300 XP" },
                         { id: "twitter_like", title: "Like Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "4,000 💰 / 200 XP" },
                         { id: "twitter_retweet", title: "Retweet Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "3,400 💰 / 170 XP" },
                         { id: "daily_reward", title: "Claim Daily Reward", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_5_friends", title: "Invite 5 Friends", link: "#", reward: "5,000 💰 / 250 XP" },
                         { id: "invite_10_friends", title: "Invite 10 Friends", link: "#", reward: "10,000 💰 / 500 XP" },
-                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }]
-                        .map((task) => (
-                            <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
-                                <div>{task.title}</div>
-                                <div>{task.reward}</div>
-                                <button onClick={() => handleTaskClick(task.id, task.link)}>
-                                    {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
-                                </button>
-                            </div>
-                        ))}
+                        { id: "invite_20_friends", title: "Invite 20 Friends", link: "#", reward: "20,000 💰 / 1000 XP" }
+                    ].map((task) => (
+                        <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
+                            <div>{task.title}</div>
+                            <div>{task.reward}</div>
+                            <button onClick={() => handleTaskClick(task.id, task.link)}>
+                                {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -257,6 +260,12 @@ function App() {
                     <p>👥 Referrals: {referralCount}</p>
                     <p>Share this link:</p>
                     <code>{`https://t.me/MemexGamebot?start=ref_${telegramId}`}</code>
+                    <button onClick={() => {
+                        navigator.clipboard.writeText(`https://t.me/MemexGamebot?start=ref_${telegramId}`);
+                        showMessage("🔗 Referral link copied!");
+                    }}>
+                        📋 Copy Referral Link
+                    </button>
                 </div>
             )}
 
@@ -286,6 +295,12 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
+
 
 
 
