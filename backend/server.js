@@ -235,45 +235,42 @@ app.post("/buyUpgrade", async (req, res) => {
         return res.status(400).json({ message: "telegramId and upgradeType required" });
     }
 
-    // Kullanıcıyı buluyoruz
     const user = await User.findOne({ telegramId });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Yükseltme seçeneklerini tanımlıyoruz
     const upgrades = {
         "click_power": { cost: 15000, boost: 10 },
         "click_max": { cost: 20000, amount: 50 },
     };
 
-    // Seçilen yükseltmeyi kontrol ediyoruz
     const selected = upgrades[upgradeType];
     if (!selected) {
         return res.status(400).json({ message: "Invalid upgrade type" });
     }
 
-    // Yeterli parası olup olmadığını kontrol ediyoruz
     if (user.coins < selected.cost) {
         return res.status(400).json({ message: "Not enough coins for upgrade" });
     }
 
-    // Kullanıcının coins değerini düşürüyoruz
+    console.log("Before update:", user);  // Log before update
     user.coins -= selected.cost;
+    console.log("After update:", user);   // Log after update
 
-    // Seçilen yükseltmeye göre işlemi gerçekleştiriyoruz
     if (upgradeType === "click_power") {
         user.clickPower += selected.boost;  // +10 Click Power
     } else if (upgradeType === "click_max") {
         user.clicks += selected.amount;  // +50 Max Clicks
     }
 
-    // Kullanıcıyı güncelliyoruz
     await user.save();
 
-    // Sonuçları frontend'e gönderiyoruz
+    console.log("User after save:", user);  // Log after save
+
     res.json({
         message: "✅ Upgrade purchased!",
         coins: user.coins,
-        clickPower: user.clickPower
+        clickPower: user.clickPower,
+        clicksLeft: user.clicks  // Ensure clicksLeft is sent
     });
 });
 

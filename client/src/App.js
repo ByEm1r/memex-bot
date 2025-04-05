@@ -170,31 +170,41 @@ function App() {
 
     const handleBuyUpgrade = async (type) => {
         try {
-            // Fiyatı backend'den alıyoruz
-            const priceResponse = await axios.get(`/getUpgradePrice?type=${type}`);
-            const price = priceResponse.data.price;  // Backend'den gelen fiyatı alıyoruz
-
-            // Yükseltme işlemi
+            // Yükseltme işlemini backend'e gönderiyoruz
             const res = await axios.post("/buyUpgrade", { telegramId, upgradeType: type });
 
-            if (res && res.data) {
-                setCoins(res.data.coins);
+            // Backend'den gelen yanıtı kontrol et
+            console.log("Response from /buyUpgrade:", res);  // Debugging log
 
-                // Backend'ten gelen clickPower'ı ekle
-                if (res.data.clickPower) {
-                    setClickPower((prevClickPower) => prevClickPower + 10);
-                }
-
-                if (res.data.clicksLeft) {
-                    setClicksLeft(res.data.clicksLeft);
-                }
-
-                showMessage(`✅ Upgrade purchased for ${price.toLocaleString()} MemeX!`);
-            } else {
+            // Yanıtın olup olmadığını kontrol ediyoruz
+            if (!res || !res.data) {
                 showMessage("❌ No data returned from server.");
+                return;
             }
+
+            // Backend'den gelen doğru veriyi güncelle
+            const { coins, clickPower, clicksLeft } = res.data;
+
+            // Coin ve clickPower'ı güncelle
+            setCoins(coins); // Backend'den gelen coin değerini güncelle
+            console.log("Updated coins:", coins);  // Debugging log
+
+            if (clickPower) {
+                setClickPower(clickPower);  // Backend'den gelen clickPower değerini güncelle
+                console.log("Updated clickPower:", clickPower);  // Debugging log
+            }
+
+            if (clicksLeft) {
+                setClicksLeft(clicksLeft);  // Kalan tıklama hakkını güncelle
+                console.log("Updated clicksLeft:", clicksLeft);  // Debugging log
+            }
+
+            // Başarı mesajı
+            showMessage(`✅ Upgrade purchased for ${coins.toLocaleString()} MemeX!`);
         } catch (error) {
-            showMessage("❌ " + (error.response?.data?.message || "Upgrade failed"));
+            console.error("Upgrade failed with error:", error);
+            const errorMessage = error.response?.data?.message || "Upgrade failed";
+            showMessage(`❌ ${errorMessage}`);
         }
     };
 
