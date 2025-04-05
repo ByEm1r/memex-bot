@@ -8,7 +8,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect(process.env.MONGO_URI);
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((err) => console.log("MongoDB connection error:", err));
 
 const UserSchema = new mongoose.Schema({
     telegramId: { type: String, unique: true },
@@ -25,7 +27,8 @@ const UserSchema = new mongoose.Schema({
     referralCount: { type: Number, default: 0 },
     doubleClick: { type: Boolean, default: false },
     autoClick: { type: Boolean, default: false },
-    clickPower: { type: Number, default: 50 }
+    clickPower: { type: Number, default: 50 },
+    completedTasks: { type: [String], default: [] }
 });
 
 const User = mongoose.model("User", UserSchema);
@@ -50,7 +53,7 @@ app.get("/getUserData", async (req, res) => {
     if (!user) {
         user = new User({
             telegramId,
-            username: username || "Anonymous"  // Burada username gelmezse "Anonymous" olarak kaydediliyor
+            username: username || "Anonymous"
         });
 
         console.log("🆕 New user detected:", telegramId);
@@ -114,21 +117,26 @@ app.post("/click", async (req, res) => {
 
     let coinEarned = user.clickPower;
 
-    if (user.doubleClick) {
-        coinEarned *= 2;
-    }
-
+    // Eğer autoClick varsa, ek coin eklenir
     if (user.autoClick) {
         coinEarned += 10;
     }
 
+    // Coin değerini güncelliyoruz
     user.coins += coinEarned;
     user.clicks -= 1;
     user.totalClicks += 1;
     user.lastClickTime = new Date();
 
+    // Veritabanını güncelledikten sonra doğru verileri frontend'e gönderiyoruz
     await user.save();
-    res.json({ message: "Click registered", coinsEarned: coinEarned, remainingClicks: user.clicks });
+
+    res.json({
+        message: "Click registered",
+        coinsEarned: coinEarned,        // Kazanılan coin miktarı
+        remainingClicks: user.clicks,   // Kalan tıklama hakkı
+        totalCoins: user.coins         // Güncellenmiş toplam coin
+    });
 });
 
 app.post("/completeTask", async (req, res) => {
@@ -142,6 +150,11 @@ app.post("/completeTask", async (req, res) => {
     if (!user) {
         user = new User({ telegramId });
         await user.save();
+    }
+
+    // Görev daha önce tamamlanmış mı kontrol et
+    if (user.completedTasks.includes(taskType)) {
+        return res.status(400).json({ message: "This task has already been completed." });
     }
 
     const taskRewards = {
@@ -160,12 +173,31 @@ app.post("/completeTask", async (req, res) => {
         return res.status(400).json({ message: "Invalid task type" });
     }
 
+    // Daily reward task için 24 saatlik zaman kontrolü
+    if (taskType === "daily_reward") {
+        const now = new Date();
+        const lastClaimed = new Date(user.lastDailyClaim);
+        const timeDiff = now - lastClaimed;
+        const twentyFourHoursInMs = 24 * 60 * 60 * 1000; // 24 saat
+
+        if (timeDiff < twentyFourHoursInMs) {
+            const remainingTime = twentyFourHoursInMs - timeDiff;
+            const hours = Math.floor(remainingTime / 3600000);
+            const minutes = Math.floor((remainingTime % 3600000) / 60000);
+            return res.status(400).json({
+                message: `You can claim the daily reward in ${hours}h ${minutes}m.`
+            });
+        }
+        // Eğer süre geçtiyse, son claim zamanını güncelle
+        user.lastDailyClaim = now;
+    }
+
+    // Coin ve XP güncellemesi
     user.experience += reward.xp;
     user.coins += reward.coins;
 
-    if (taskType === "daily_reward") {
-        user.lastDailyClaim = new Date();
-    }
+    // Tamamlanan görevi kaydet
+    user.completedTasks.push(taskType);
 
     checkLevelUp(user);
     await user.save();
@@ -187,11 +219,11 @@ app.post("/withdraw", async (req, res) => {
     const user = await User.findOne({ telegramId });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (user.coins < 500000) {
-        return res.status(400).json({ message: "Minimum 500,000 MemeX required." });
+    if (user.coins < 1000000) {
+        return res.status(400).json({ message: "Minimum 1,000,000 MemeX required." });
     }
 
-    user.coins -= 500000;
+    user.coins -= 1000000;
     await user.save();
 
     res.json({ message: "✅ Withdrawal request received!" });
@@ -203,46 +235,47 @@ app.post("/buyUpgrade", async (req, res) => {
         return res.status(400).json({ message: "telegramId and upgradeType required" });
     }
 
+    // Kullanıcıyı buluyoruz
     const user = await User.findOne({ telegramId });
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // Yükseltme seçeneklerini tanımlıyoruz
     const upgrades = {
-        "click_power": { cost: 8000, boost: 10 },
+        "click_power": { cost: 15000, boost: 10 },
         "click_max": { cost: 20000, amount: 50 },
-        "double_click": { cost: 20000, duration: 30 * 60 * 1000 },
-        "auto_click": { cost: 15000, duration: 60 * 60 * 1000 }
     };
 
+    // Seçilen yükseltmeyi kontrol ediyoruz
     const selected = upgrades[upgradeType];
-    if (!selected || user.coins < selected.cost) {
-        return res.status(400).json({ message: "Not enough coins or invalid upgrade." });
+    if (!selected) {
+        return res.status(400).json({ message: "Invalid upgrade type" });
     }
 
+    // Yeterli parası olup olmadığını kontrol ediyoruz
+    if (user.coins < selected.cost) {
+        return res.status(400).json({ message: "Not enough coins for upgrade" });
+    }
+
+    // Kullanıcının coins değerini düşürüyoruz
     user.coins -= selected.cost;
 
+    // Seçilen yükseltmeye göre işlemi gerçekleştiriyoruz
     if (upgradeType === "click_power") {
-        user.clickPower += selected.boost;
+        user.clickPower += selected.boost;  // +10 Click Power
+    } else if (upgradeType === "click_max") {
+        user.clicks += selected.amount;  // +50 Max Clicks
     }
 
-    if (upgradeType === "click_max") {
-        user.clicks += selected.amount;
-    }
-
-    if (upgradeType === "double_click") {
-        user.doubleClick = true;
-        user.doubleClickExpiration = new Date().getTime() + selected.duration;
-    }
-
-    if (upgradeType === "auto_click") {
-        user.autoClick = true;
-        user.autoClickExpiration = new Date().getTime() + selected.duration;
-    }
-
+    // Kullanıcıyı güncelliyoruz
     await user.save();
-    res.json({ message: "✅ Upgrade purchased!", coins: user.coins, clickPower: user.clickPower });
-});
 
-// Leaderboard endpoint removed
+    // Sonuçları frontend'e gönderiyoruz
+    res.json({
+        message: "✅ Upgrade purchased!",
+        coins: user.coins,
+        clickPower: user.clickPower
+    });
+});
 
 cron.schedule("*/20 * * * *", async () => {
     await User.updateMany({}, { $set: { clicks: 100 } });
@@ -257,6 +290,7 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+
 
 
 

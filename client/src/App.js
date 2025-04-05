@@ -28,14 +28,13 @@ function App() {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const [loadingTaskId, setLoadingTaskId] = useState(null);
-    const [leaderboardData, setLeaderboardData] = useState([]);
     const [withdrawAddress, setWithdrawAddress] = useState("");
     const [withdrawVisible, setWithdrawVisible] = useState(false);
+    const [lastClickTime, setLastClickTime] = useState(null); // Son tıklama zamanını saklamak için
 
     const marketItems = [
-        { id: "click_power", label: "⚡ +10 Click Power", price: 8000 },
+        { id: "click_power", label: "⚡ +10 Click Power", price: 15000 },
         { id: "click_max", label: "🔋 +50 Max Clicks", price: 20000 },
-        { id: "double_click", label: "🌀 2x Click Reward (30 min)", price: 20000 },
     ];
 
     const restrictedReferralTasks = {
@@ -50,14 +49,48 @@ function App() {
     };
 
     const handleClick = async () => {
+        const currentTime = Date.now();
+
+        // Tıklama haklarını kontrol et
+        if (clicksLeft <= 0) {
+            if (currentTime - lastClickTime < 1200000) {
+                const remainingTime = 1200000 - (currentTime - lastClickTime);
+                const minutes = Math.floor(remainingTime / 60000);
+                showMessage(`⏳ Please wait ${minutes} minutes before you can click again.`);
+                return;
+            } else {
+                setClicksLeft(100); // Backend'den gelen verilerle güncellenmeli
+                setLastClickTime(currentTime);
+            }
+        }
+
+        if (currentTime - lastClickTime < 500) {
+            console.log("Too fast! Please wait a moment.");
+            return;
+        }
+
+        setLastClickTime(currentTime);
+
         if (loading) return;
         setLoading(true);
+
         try {
-            const res = await axios.post("/click", { telegramId });
-            setCoins((prev) => prev + res.data.coinsEarned);
-            setClicksLeft(res.data.remainingClicks);
-            showMessage(`+${res.data.coinsEarned} 💰`);
+            const res = await axios.post("/click", { telegramId: telegramId });
+
+            // Backend'den gelen doğru verileri alıyoruz
+            if (res.data.coinsEarned && !isNaN(res.data.coinsEarned)) {
+                setCoins((prevCoins) => prevCoins + res.data.coinsEarned);  // Backend'den gelen coinEarned ile coin miktarını arttırıyoruz
+            }
+
+            if (res.data.remainingClicks && !isNaN(res.data.remainingClicks)) {
+                setClicksLeft(res.data.remainingClicks);  // Kalan tıklama hakkını güncelliyoruz
+            }
+
+            // Backend'den gelen kazanç bilgisi
+            showMessage(`+${res.data.coinsEarned} 💰`);  // Backend'den gelen coin miktarını gösteriyoruz
         } catch (err) {
+            setCoins(coins);
+            setClicksLeft(clicksLeft);
             showMessage(err.response?.data?.message || "❌ Click failed");
         } finally {
             setLoading(false);
@@ -65,15 +98,19 @@ function App() {
     };
 
     const handleTaskClick = async (taskId, link) => {
+        // Eğer görev daha önce tamamlanmışsa, tekrar yapılmasına izin verme
         if (completedTasks.includes(taskId)) return;
+
         setLoadingTaskId(taskId);
 
+        // Eğer referral görevleri için şartlar sağlanmamışsa, kullanıcıya uyarı göster
         if (restrictedReferralTasks[taskId] && referralCount < restrictedReferralTasks[taskId]) {
             showMessage(`❌ You need at least ${restrictedReferralTasks[taskId]} referrals to complete this task.`);
             setLoadingTaskId(null);
             return;
         }
 
+        // Eğer "daily_reward" görevi, son günlük ödül kazanma zamanından önce yapılırsa, uyarı göster
         if (taskId === "daily_reward") {
             const now = new Date();
             const last = new Date(lastDailyClaim);
@@ -86,17 +123,23 @@ function App() {
                 setLoadingTaskId(null);
                 return;
             }
-            await new Promise((r) => setTimeout(r, 3000));
+            await new Promise((r) => setTimeout(r, 3000));  // 3 saniye bekle
         } else {
             window.open(link, "_blank");
-            await new Promise((r) => setTimeout(r, 30000));
+            await new Promise((r) => setTimeout(r, 30000));  // 30 saniye bekle
         }
 
         try {
             const res = await axios.post("/completeTask", { telegramId, taskType: taskId });
+
+            // Görevi tamamladığında, completedTasks dizisine ekle
             const updated = [...completedTasks, taskId];
             setCompletedTasks(updated);
+
+            // Güncel completedTasks dizisini localStorage'a kaydet
             localStorage.setItem("completedTasks", JSON.stringify(updated));
+
+            // Kullanıcı bilgilerini güncelle
             setCoins(res.data.coins);
             setLevel(res.data.level);
             showMessage("✅ Task completed!");
@@ -108,8 +151,8 @@ function App() {
     };
 
     const handleWithdraw = async () => {
-        if (coins < 500000) {
-            showMessage("❌ Minimum 500,000 MemeX required to withdraw.");
+        if (coins < 1000000) {
+            showMessage("❌ Minimum 1,000,000 MemeX required to withdraw.");
             return;
         }
         if (!withdrawAddress) {
@@ -118,7 +161,7 @@ function App() {
         }
         try {
             await axios.post("/withdraw", { telegramId, address: withdrawAddress });
-            setCoins((prev) => prev - 500000);
+            setCoins((prev) => prev - 1000000);
             showMessage("✅ Withdrawal requested!");
         } catch (err) {
             showMessage("❌ Withdrawal failed.");
@@ -127,10 +170,29 @@ function App() {
 
     const handleBuyUpgrade = async (type) => {
         try {
+            // Fiyatı backend'den alıyoruz
+            const priceResponse = await axios.get(`/getUpgradePrice?type=${type}`);
+            const price = priceResponse.data.price;  // Backend'den gelen fiyatı alıyoruz
+
+            // Yükseltme işlemi
             const res = await axios.post("/buyUpgrade", { telegramId, upgradeType: type });
-            setCoins(res.data.coins);
-            if (res.data.clickPower) setClickPower(res.data.clickPower);
-            showMessage("✅ Upgrade purchased!");
+
+            if (res && res.data) {
+                setCoins(res.data.coins);
+
+                // Backend'ten gelen clickPower'ı ekle
+                if (res.data.clickPower) {
+                    setClickPower((prevClickPower) => prevClickPower + 10);
+                }
+
+                if (res.data.clicksLeft) {
+                    setClicksLeft(res.data.clicksLeft);
+                }
+
+                showMessage(`✅ Upgrade purchased for ${price.toLocaleString()} MemeX!`);
+            } else {
+                showMessage("❌ No data returned from server.");
+            }
         } catch (error) {
             showMessage("❌ " + (error.response?.data?.message || "Upgrade failed"));
         }
@@ -148,7 +210,6 @@ function App() {
             localStorage.setItem("username", username || "Anonymous");
             setUsername(username || "Anonymous");
 
-            // Kullanıcı Verisini Backend'e Gönder
             const userData = {
                 telegramId: userId.toString(),
                 username: username || "Anonymous",
@@ -165,12 +226,16 @@ function App() {
                 clickPower: 50,
             };
 
-            // Kullanıcıyı backend'e gönderiyoruz
-            createUser(userData);  // Backend'e gönderme
+            createUser(userData);
         } else {
             setTelegramId("123456789");
         }
         tg?.expand();
+        // Burada localStorage'dan tamamlanmış görevleri alıyoruz
+        const storedTasks = localStorage.getItem("completedTasks");
+        if (storedTasks) {
+            setCompletedTasks(JSON.parse(storedTasks));  // localStorage'dan tamamlanmış görevleri yükle
+        }
     }, []);
 
     useEffect(() => {
@@ -188,15 +253,6 @@ function App() {
             }
         };
 
-        const fetchLeaderboard = async () => {
-            try {
-                const res = await axios.get("/leaderboard");
-                setLeaderboardData(res.data);
-            } catch (err) {
-                console.error("Leaderboard data error:", err);
-            }
-        };
-
         const fetchReferralCount = async () => {
             try {
                 const res = await axios.get(`/referralCount?telegramId=${telegramId}`);
@@ -208,7 +264,6 @@ function App() {
 
         if (telegramId) {
             fetchUserData();
-            fetchLeaderboard();
             fetchReferralCount();
         }
     }, [telegramId, username]);
@@ -216,8 +271,8 @@ function App() {
     return (
         <div className="App">
             <div className="top-bar">
-                <div className="coins">💰 {coins.toLocaleString()}</div>
-                <div className="level">⭐ Level {level}</div>
+                <div className="coins">💰 {coins !== undefined && coins !== null ? coins.toLocaleString() : 0}</div>
+                <div className="level">⭐ Level {level !== undefined && level !== null ? level : 1}</div>
                 <div className="withdraw-btn">
                     <button onClick={() => setWithdrawVisible(!withdrawVisible)}>💸 Withdraw</button>
                 </div>
@@ -275,7 +330,6 @@ function App() {
             {activeTab === "referral" && telegramId && (
                 <div className="referral">
                     <h3>🔗 Referral</h3>
-                    <p>Invite your friends and earn 5,000 💰 + 250 XP for each!</p>
                     <p>👥 Referrals: {referralCount}</p>
                     <p>Share this link:</p>
                     <code>{`https://t.me/MemexGamebot?start=ref_${telegramId}`}</code>
@@ -313,6 +367,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
