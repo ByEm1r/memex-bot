@@ -26,7 +26,6 @@ function App() {
     const [referralCount, setReferralCount] = useState(0);
     const [activeTab, setActiveTab] = useState("home");
     const [message, setMessage] = useState("");
-    const [loading, setLoading] = useState(false);
     const [loadingTaskId, setLoadingTaskId] = useState(null);
     const [withdrawAddress, setWithdrawAddress] = useState("");
     const [withdrawVisible, setWithdrawVisible] = useState(false);
@@ -51,99 +50,107 @@ function App() {
     const handleClick = async () => {
         const currentTime = Date.now();
 
-        // Tıklama haklarını kontrol et
+        // Eğer tıklama hakkı yoksa, tıklama bekleme mesajı göster
         if (clicksLeft <= 0) {
-            if (currentTime - lastClickTime < 1200000) {
-                const remainingTime = 1200000 - (currentTime - lastClickTime);
+            const remainingTime = 1200000 - (currentTime - lastClickTime);
+            if (remainingTime > 0) {
                 const minutes = Math.floor(remainingTime / 60000);
                 showMessage(`⏳ Please wait ${minutes} minutes before you can click again.`);
                 return;
             } else {
-                setClicksLeft(100); // Backend'den gelen verilerle güncellenmeli
+                setClicksLeft(100); // Tıklama haklarını güncelliyoruz (backend'den gelen verilere göre)
                 setLastClickTime(currentTime);
             }
         }
 
-        if (currentTime - lastClickTime < 500) {
-            console.log("Too fast! Please wait a moment.");
-            return;
+        // 50ms içinde yapılan tıklamalar engelleniyor (hızlı tıklama önleniyor)
+        if (currentTime - lastClickTime < 50) {
+            return;  // Çok hızlı tıklamalar engelleniyor
         }
 
+        // Son tıklama zamanını güncelliyoruz
         setLastClickTime(currentTime);
 
-        if (loading) return;
-        setLoading(true);
-
         try {
+            // Paralel olarak çoklu tıklama istekleri gönderiyoruz
             const res = await axios.post("/click", { telegramId: telegramId });
 
-            // Backend'den gelen doğru verileri alıyoruz
-            if (res.data.coinsEarned && !isNaN(res.data.coinsEarned)) {
-                setCoins((prevCoins) => prevCoins + res.data.coinsEarned);  // Backend'den gelen coinEarned ile coin miktarını arttırıyoruz
+            // Gelen coin ve kalan tıklama bilgilerini işliyoruz
+            if (res.data.coinsEarned) {
+                setCoins((prevCoins) => prevCoins + res.data.coinsEarned);  // Coin'leri birleştiriyoruz
             }
 
-            if (res.data.remainingClicks && !isNaN(res.data.remainingClicks)) {
+            if (res.data.remainingClicks) {
                 setClicksLeft(res.data.remainingClicks);  // Kalan tıklama hakkını güncelliyoruz
             }
 
-            // Backend'den gelen kazanç bilgisi
-            showMessage(`+${res.data.coinsEarned} 💰`);  // Backend'den gelen coin miktarını gösteriyoruz
+            showMessage(`+${res.data.coinsEarned} 💰`);  // Kazanç bilgisi gösteriliyor
+
+            // **Backend'den tekrar coin verilerini alıyoruz** ve UI'yi senkronize ediyoruz
+            const coinRes = await axios.get(`/getUserData?telegramId=${telegramId}`);
+            setCoins(coinRes.data.coins); // Backend'den alınan doğru coin miktarı ile güncelliyoruz
+
         } catch (err) {
-            setCoins(coins);
-            setClicksLeft(clicksLeft);
             showMessage(err.response?.data?.message || "❌ Click failed");
-        } finally {
-            setLoading(false);
         }
     };
 
     const handleTaskClick = async (taskId, link) => {
+        console.log("Task ID:", taskId);
+
         // Eğer görev daha önce tamamlanmışsa, tekrar yapılmasına izin verme
-        if (completedTasks.includes(taskId)) return;
-
-        setLoadingTaskId(taskId);
-
-        // Eğer referral görevleri için şartlar sağlanmamışsa, kullanıcıya uyarı göster
-        if (restrictedReferralTasks[taskId] && referralCount < restrictedReferralTasks[taskId]) {
-            showMessage(`❌ You need at least ${restrictedReferralTasks[taskId]} referrals to complete this task.`);
-            setLoadingTaskId(null);
+        if (completedTasks.includes(taskId)) {
+            console.log(`Task ${taskId} already completed`);
             return;
         }
 
-        // Eğer "daily_reward" görevi, son günlük ödül kazanma zamanından önce yapılırsa, uyarı göster
-        if (taskId === "daily_reward") {
-            const now = new Date();
-            const last = new Date(lastDailyClaim);
-            const diff = now - last;
-            if (lastDailyClaim && diff < 86400000) {
-                const remaining = 86400000 - diff;
-                const hours = Math.floor(remaining / 3600000);
-                const minutes = Math.floor((remaining % 3600000) / 60000);
-                showMessage(`⏳ Come back in ${hours}h ${minutes}m`);
+        setLoadingTaskId(taskId);
+
+        // Referral görevleri için şartları kontrol et
+        if (restrictedReferralTasks[taskId]) {
+            const requiredReferrals = restrictedReferralTasks[taskId];
+            if (referralCount < requiredReferrals) {
+                showMessage(`❌ You need at least ${requiredReferrals} referrals to complete this task.`);
                 setLoadingTaskId(null);
                 return;
             }
-            await new Promise((r) => setTimeout(r, 3000));  // 3 saniye bekle
-        } else {
+        }
+
+        // "daily_reward" görevi ise, backend'den kalan süreyi kontrol et
+        if (taskId === "daily_reward") {
+            try {
+                const res = await axios.post("/checkDailyReward", { telegramId });
+
+                if (res.data.message) {
+                    showMessage(res.data.message);
+                    setLoadingTaskId(null);
+                    return;
+                }
+
+                await new Promise((r) => setTimeout(r, 3000)); // 3 saniye bekle
+            } catch (err) {
+                showMessage("❌ Task failed!");
+                setLoadingTaskId(null);
+                return;
+            }
+        } else if (taskId === "start_party_with_memex" || taskId === "twitter_follow" || taskId === "telegram_join" || taskId === "twitter_like" || taskId === "twitter_retweet") {
             window.open(link, "_blank");
-            await new Promise((r) => setTimeout(r, 30000));  // 30 saniye bekle
+            await new Promise((r) => setTimeout(r, 10000)); // 10 saniye bekle
         }
 
         try {
             const res = await axios.post("/completeTask", { telegramId, taskType: taskId });
 
-            // Görevi tamamladığında, completedTasks dizisine ekle
             const updated = [...completedTasks, taskId];
             setCompletedTasks(updated);
 
-            // Güncel completedTasks dizisini localStorage'a kaydet
             localStorage.setItem("completedTasks", JSON.stringify(updated));
 
-            // Kullanıcı bilgilerini güncelle
             setCoins(res.data.coins);
             setLevel(res.data.level);
             showMessage("✅ Task completed!");
         } catch (err) {
+            console.log("Error during task completion:", err);
             showMessage("❌ Task failed!");
         } finally {
             setLoadingTaskId(null);
@@ -253,6 +260,7 @@ function App() {
             try {
                 const ref = localStorage.getItem("referrer");
                 const res = await axios.get(`/getUserData?telegramId=${telegramId}${ref ? `&ref=${ref}` : ""}&username=${username}`);
+
                 setCoins(res.data.coins);
                 setClicksLeft(res.data.clicks);
                 setLevel(res.data.level);
@@ -273,10 +281,12 @@ function App() {
         };
 
         if (telegramId) {
+            // fetchUserData'yi önce çağırıyoruz
             fetchUserData();
+            // fetchReferralCount'ı daha sonra çağırıyoruz
             fetchReferralCount();
         }
-    }, [telegramId, username]);
+    }, [telegramId, username]);  // Bağımlılıklar
 
     return (
         <div className="App">
@@ -317,6 +327,7 @@ function App() {
             {activeTab === "tasks" && (
                 <div className="task-list">
                     {[
+                        { id: "start_party_with_memex", title: "Start the Party with $MemeX (Like & RT)", link: "https://x.com/memexairdrop/status/1908559188751507763", reward: "4,000 💰 / 200 XP" },
                         { id: "twitter_follow", title: "Follow on X", link: "https://x.com/memexairdrop", reward: "4,000 💰 / 200 XP" },
                         { id: "telegram_join", title: "Join Telegram", link: "https://t.me/MemeXGloball", reward: "6,000 💰 / 300 XP" },
                         { id: "twitter_like", title: "Like Tweet", link: "https://x.com/memexairdrop/status/1904244723469984157", reward: "4,000 💰 / 200 XP" },

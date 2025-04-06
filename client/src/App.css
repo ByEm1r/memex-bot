@@ -141,6 +141,8 @@ html, body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     text-align: left;
+    overflow: hidden; /* İçerik taşarsa gizle */
+    box-sizing: border-box; /* Padding ve border'ı genişlik hesaplamasına dahil et */
 }
 
 .upgrade-card p {
@@ -167,26 +169,54 @@ html, body {
     transition: background-color 0.3s ease;
     margin-left: 20px;
     width: auto;
+    box-sizing: border-box; /* Buton içeriğiyle birlikte genişlik hesaplaması yapılacak */
 }
 
+/* Buton Hover Durumu */
 .upgrade-card button:hover {
     background-color: #019c6d;
 }
 
+/* Buton Disabled Durumu */
 .upgrade-card button:disabled {
     background-color: #888;
     cursor: not-allowed;
 }
 
+/* Mobil Ekranlar İçin Özelleştirme (768px ve altı) */
 @media (max-width: 768px) {
     .upgrade-card {
         flex-direction: column; /* Mobilde dikey hizalama */
         align-items: stretch;
+        max-width: 100%; /* Kart genişliği ekranın tamamını kapsayacak şekilde ayarlandı */
+        padding: 15px; /* Padding'i biraz küçültüyoruz */
     }
 
     .upgrade-card button {
-        width: 100%;
-        margin-left: 0;
+        width: 100%; /* Buton genişliği %100 yapılmalı */
+        margin-left: 0; /* Margin sıfırlandı */
+        padding: 10px 18px; /* Buton padding'i küçültüldü */
+        font-size: 14px; /* Font boyutu biraz küçültüldü */
+    }
+
+    .upgrade-card p {
+        font-size: 16px; /* Font boyutu mobilde daha küçük */
+    }
+}
+
+/* Daha küçük ekranlar (480px ve altı) */
+@media (max-width: 480px) {
+    .upgrade-card {
+        padding: 12px; /* Kart padding'ini daha da küçülttük */
+    }
+
+    .upgrade-card button {
+        font-size: 12px; /* Font boyutunu daha da küçültüyoruz */
+        padding: 8px 16px; /* Daha küçük buton boyutları */
+    }
+
+    .upgrade-card p {
+        font-size: 14px; /* Font boyutunu daha da küçültüyoruz */
     }
 }
 

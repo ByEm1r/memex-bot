@@ -63,34 +63,49 @@ app.get("/getUserData", async (req, res) => {
             const referrer = await User.findOne({ telegramId: ref });
             if (referrer) {
                 user.referrer = ref;
-                referrer.coins += 5000;
-                referrer.experience += 250;
-                referrer.referralCount += 1;
-                checkLevelUp(referrer);
-                await referrer.save();  // Referrer kaydediliyor
+                referrer.referralCount += 1;  // Increment the referrer’s referral count
+
+                // Provide rewards based on the referral count thresholds
+                if (referrer.referralCount >= 20) {
+                    referrer.coins += 20000;  // 20000 coin reward for 20 referrals
+                    referrer.experience += 1000;  // 1000 XP reward for 20 referrals
+                    console.log("🔗 20 referrals: Giving 20000 coins and 1000 XP to referrer.");
+                } else if (referrer.referralCount >= 10) {
+                    referrer.coins += 10000;  // 10000 coin reward for 10 referrals
+                    referrer.experience += 500;  // 500 XP reward for 10 referrals
+                    console.log("🔗 10 referrals: Giving 10000 coins and 500 XP to referrer.");
+                } else if (referrer.referralCount >= 5) {
+                    referrer.coins += 5000;  // 5000 coin reward for 5 referrals
+                    referrer.experience += 250;  // 250 XP reward for 5 referrals
+                    console.log("🔗 5 referrals: Giving 5000 coins and 250 XP to referrer.");
+                }
+
+                checkLevelUp(referrer);  // Check if the referrer levels up
+                await referrer.save();  // Save the referrer data with updated coins, XP, and referralCount
             }
         }
 
-        await user.save();  // Yeni kullanıcı kaydediliyor
+        await user.save();  // Save the new user data
     } else {
-        // Eğer kullanıcı mevcutsa, username'i güncelle
+        // If the user exists, update their username if it's missing
         if (!user.username && username) {
             user.username = username;
             await user.save();
         }
     }
 
+    // Send the user data including referralCount and other relevant information
     res.json({
         coins: user.coins,
         clicks: user.clicks,
         level: user.level,
         experience: user.experience,
-        lastDailyClaim: user.lastDailyClaim,
+        lastDailyClaim: user.lastDailyClaim ? user.lastDailyClaim : null,  // If lastDailyClaim exists, send it
         powerUps: user.powerUps,
         doubleClick: user.doubleClick,
         autoClick: user.autoClick,
         clickPower: user.clickPower,
-        referralCount: user.referralCount
+        referralCount: user.referralCount  // Send the referral count to the frontend
     });
 });
 
@@ -139,6 +154,38 @@ app.post("/click", async (req, res) => {
     });
 });
 
+app.post("/checkDailyReward", async (req, res) => {
+    const { telegramId } = req.body;
+
+    if (!telegramId) {
+        return res.status(400).json({ message: "telegramId is required" });
+    }
+
+    let user = await User.findOne({ telegramId });
+    if (!user) {
+        return res.status(404).json({ message: "User not found" });
+    }
+
+    // Daily reward task için 24 saatlik zaman kontrolü
+    const now = new Date();
+    const lastClaimed = new Date(user.lastDailyClaim);
+    const timeDiff = now - lastClaimed;
+    const twentyFourHoursInMs = 24 * 60 * 60 * 1000; // 24 saat
+
+    if (timeDiff < twentyFourHoursInMs) {
+        const remainingTime = twentyFourHoursInMs - timeDiff;
+        const hours = Math.floor(remainingTime / 3600000);  // Kalan saat
+        const minutes = Math.floor((remainingTime % 3600000) / 60000);  // Kalan dakika
+
+        return res.status(400).json({
+            message: `⏳ You can claim the daily reward in ${hours}h ${minutes}m.`
+        });
+    }
+
+    // Eğer 24 saatten fazla süre geçmişse, ödülünü alabilir
+    res.json({ message: "You can claim the daily reward now." });
+});
+
 app.post("/completeTask", async (req, res) => {
     const { telegramId, taskType } = req.body;
 
@@ -150,14 +197,17 @@ app.post("/completeTask", async (req, res) => {
     if (!user) {
         user = new User({ telegramId });
         await user.save();
+        console.log("🆕 New user created:", user);  // Yeni kullanıcı oluşturuluyor
     }
 
     // Görev daha önce tamamlanmış mı kontrol et
     if (user.completedTasks.includes(taskType)) {
+        console.log(`Task ${taskType} already completed`);
         return res.status(400).json({ message: "This task has already been completed." });
     }
 
     const taskRewards = {
+        "start_party_with_memex": { xp: 200, coins: 4000 },
         "twitter_follow": { xp: 200, coins: 4000 },
         "telegram_join": { xp: 300, coins: 6000 },
         "twitter_like": { xp: 200, coins: 4000 },
@@ -170,7 +220,27 @@ app.post("/completeTask", async (req, res) => {
 
     const reward = taskRewards[taskType];
     if (!reward) {
+        console.log(`Invalid task type: ${taskType}`);
         return res.status(400).json({ message: "Invalid task type" });
+    }
+
+    console.log(`Reward for ${taskType}:`, reward);
+
+    // Invite görevleri için kontrol ekleme
+    if (taskType.startsWith("invite_")) {
+        let requiredReferrals = 0;
+
+        if (taskType === "invite_5_friends") {
+            requiredReferrals = 5;
+        } else if (taskType === "invite_10_friends") {
+            requiredReferrals = 10;
+        } else if (taskType === "invite_20_friends") {
+            requiredReferrals = 20;
+        }
+
+        if (user.referrals < requiredReferrals) {
+            return res.status(400).json({ message: `⏳ You need to invite ${requiredReferrals} friends to complete this task.` });
+        }
     }
 
     // Daily reward task için 24 saatlik zaman kontrolü
@@ -178,18 +248,18 @@ app.post("/completeTask", async (req, res) => {
         const now = new Date();
         const lastClaimed = new Date(user.lastDailyClaim);
         const timeDiff = now - lastClaimed;
-        const twentyFourHoursInMs = 24 * 60 * 60 * 1000; // 24 saat
+        const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
 
         if (timeDiff < twentyFourHoursInMs) {
             const remainingTime = twentyFourHoursInMs - timeDiff;
             const hours = Math.floor(remainingTime / 3600000);
             const minutes = Math.floor((remainingTime % 3600000) / 60000);
             return res.status(400).json({
-                message: `You can claim the daily reward in ${hours}h ${minutes}m.`
+                message: `⏳ You can claim the daily reward in ${hours}h ${minutes}m.`
             });
         }
-        // Eğer süre geçtiyse, son claim zamanını güncelle
-        user.lastDailyClaim = now;
+
+        user.lastDailyClaim = now;  // Son claim zamanını güncelle
     }
 
     // Coin ve XP güncellemesi
@@ -198,6 +268,7 @@ app.post("/completeTask", async (req, res) => {
 
     // Tamamlanan görevi kaydet
     user.completedTasks.push(taskType);
+    console.log("Completed tasks:", user.completedTasks);
 
     checkLevelUp(user);
     await user.save();
