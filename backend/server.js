@@ -9,8 +9,24 @@ app.use(express.json());
 app.use(cors());
 
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
+    .then(() => {
+        console.log("MongoDB connected");
+
+        // MongoDB bağlantısı sağlandığında görev sıfırlama fonksiyonunu çalıştırıyoruz
+        resetCompletedTasks();
+    })
     .catch((err) => console.log("MongoDB connection error:", err));
+
+// Tüm kullanıcıların completedTasks dizilerini sıfırlayacak kod
+const resetCompletedTasks = async () => {
+    try {
+        // Kullanıcıları buluyor ve completedTasks dizisini sıfırlıyoruz
+        await User.updateMany({}, { $set: { completedTasks: [] } });
+        console.log("✅ All tasks have been reset for every user.");
+    } catch (error) {
+        console.error("❌ Error resetting tasks:", error);
+    }
+};
 
 const UserSchema = new mongoose.Schema({
     telegramId: { type: String, unique: true },
@@ -111,10 +127,22 @@ app.get("/getUserData", async (req, res) => {
 
 app.get("/referralCount", async (req, res) => {
     const { telegramId } = req.query;
-    if (!telegramId) return res.status(400).json({ message: "telegramId is required" });
 
-    const count = await User.countDocuments({ referrer: telegramId });
-    res.json({ count });
+    // telegramId kontrolü
+    if (!telegramId) {
+        return res.status(400).json({ message: "telegramId is required" });
+    }
+
+    try {
+        // Kullanıcıyı referans olarak belirleyen kullanıcı sayısını al
+        const count = await User.countDocuments({ referrer: telegramId });
+
+        // Referans sayısını döndür
+        res.json({ count });
+    } catch (err) {
+        // Veritabanı hatası durumunda hata mesajı döndür
+        res.status(500).json({ message: "Internal server error", error: err.message });
+    }
 });
 
 app.post("/click", async (req, res) => {
@@ -182,7 +210,10 @@ app.post("/checkDailyReward", async (req, res) => {
         });
     }
 
-    // Eğer 24 saatten fazla süre geçmişse, ödülünü alabilir
+    // Eğer 24 saatten fazla süre geçmişse, ödülünü alabilir ve lastDailyClaim'i güncelle
+    user.lastDailyClaim = now;  // Son ödül alınma tarihini güncelle
+    await user.save();
+
     res.json({ message: "You can claim the daily reward now." });
 });
 

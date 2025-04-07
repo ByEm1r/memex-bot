@@ -30,6 +30,8 @@ function App() {
     const [withdrawAddress, setWithdrawAddress] = useState("");
     const [withdrawVisible, setWithdrawVisible] = useState(false);
     const [lastClickTime, setLastClickTime] = useState(null); // Son tıklama zamanını saklamak için
+    const [canClaimDailyReward, setCanClaimDailyReward] = useState(true);
+    const [remainingTime, setRemainingTime] = useState({ hours: 0, minutes: 0 });
 
     const marketItems = [
         { id: "click_power", label: "⚡ +10 Click Power", price: 15000 },
@@ -117,28 +119,33 @@ function App() {
         }
 
         // "daily_reward" görevi için, lastDailyClaim üzerinden 24 saatlik zaman kontrolü
-        if (taskId === "daily_reward") {
-            if (lastDailyClaim) {
-                const now = new Date();
-                const diff = now - new Date(lastDailyClaim);  // lastDailyClaim ile şu anki zaman farkını alıyoruz
+        let canClaimDailyReward = true;
+        let remainingTime = { hours: 0, minutes: 0 };
 
-                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;  // 24 saat = 86400000 ms
-                if (diff < twentyFourHoursInMs) {
-                    const remainingTime = twentyFourHoursInMs - diff;
-                    const hours = Math.floor(remainingTime / 3600000);  // Kalan saat
-                    const minutes = Math.floor((remainingTime % 3600000) / 60000);  // Kalan dakika
+        if (taskId === "daily_reward" && lastDailyClaim) {
+            const now = new Date();
+            const diff = now - new Date(lastDailyClaim);  // lastDailyClaim ile şu anki zaman farkını alıyoruz
 
-                    showMessage(`⏳ You can claim the daily reward in ${hours}h ${minutes}m.`);  // Kalan süreyi gösteriyoruz
-                    setLoadingTaskId(null);
-                    return;  // Eğer süre bitmemişse, işlemi durduruyoruz
-                }
+            const twentyFourHoursInMs = 24 * 60 * 60 * 1000;  // 24 saat = 86400000 ms
+            if (diff < twentyFourHoursInMs) {
+                const remaining = twentyFourHoursInMs - diff;
+                remainingTime = {
+                    hours: Math.floor(remaining / 3600000),  // Kalan saat
+                    minutes: Math.floor((remaining % 3600000) / 60000),  // Kalan dakika
+                };
+                canClaimDailyReward = false;  // Eğer 24 saat dolmamışsa, görev tamamlanamaz
             }
-            // Eğer süre bitmişse, görevi tamamla
-            await new Promise((r) => setTimeout(r, 3000));  // 3 saniye bekle
-        } else if (taskId === "start_party_with_memex" || taskId === "twitter_follow" || taskId === "telegram_join" || taskId === "twitter_like" || taskId === "twitter_retweet") {
-            window.open(link, "_blank");
-            await new Promise((r) => setTimeout(r, 10000)); // 10 saniye bekle
         }
+
+        // Eğer görevi 24 saatten önce yapmak istenirse, süreyi göster
+        if (!canClaimDailyReward) {
+            showMessage(`⏳ You can claim the daily reward in ${remainingTime.hours}h ${remainingTime.minutes}m.`);
+            setLoadingTaskId(null);
+            return;
+        }
+
+        // Eğer süre bitmişse, görevi tamamla
+        await new Promise((r) => setTimeout(r, 3000));  // 3 saniye bekle
 
         try {
             const res = await axios.post("/completeTask", { telegramId, taskType: taskId });
@@ -291,7 +298,7 @@ function App() {
             // fetchReferralCount'ı daha sonra çağırıyoruz
             fetchReferralCount();
         }
-    }, [telegramId, username]);  // Bağımlılıklar
+    }, [telegramId, username]);
 
     return (
         <div className="App">
@@ -345,8 +352,28 @@ function App() {
                         <div key={task.id} className={`task-card ${completedTasks.includes(task.id) ? "completed" : ""}`}>
                             <div>{task.title}</div>
                             <div>{task.reward}</div>
-                            <button onClick={() => handleTaskClick(task.id, task.link)}>
-                                {completedTasks.includes(task.id) ? "✅ Completed" : loadingTaskId === task.id ? "Loading..." : "Do Task"}
+                            <button
+                                onClick={async () => {
+                                    // Eğer görev bir bağlantıya yönlendirilecekse
+                                    if (task.id === "start_party_with_memex" || task.id === "twitter_follow" || task.id === "telegram_join" || task.id === "twitter_like" || task.id === "twitter_retweet") {
+                                        window.open(task.link, "_blank"); // Yeni bir sekmede linki açar
+                                        await new Promise((r) => setTimeout(r, 10000));  // 10 saniye bekle
+                                    }
+
+                                    // Normal görevlerde, zaman kontrolü ve diğer işlemler yapılır
+                                    await handleTaskClick(task.id, task.link);
+                                }}
+                                disabled={completedTasks.includes(task.id)} // Tıklanabilirlik kontrolü
+                                className={`task-button ${completedTasks.includes(task.id) ? "completed" : ""}`}
+                            >
+                                {completedTasks.includes(task.id)
+                                    ? "✅ Completed" // Görev tamamlandıysa
+                                    : loadingTaskId === task.id
+                                        ? "Loading..." // Yükleniyor ise
+                                        : task.id === "daily_reward" && !canClaimDailyReward
+                                            ? `⏳ ${remainingTime.hours}h ${remainingTime.minutes}m` // Daily reward için bekleme süresi
+                                            : "Do Task" // Görev tamamlanabiliyorsa
+                                }
                             </button>
                         </div>
                     ))}
@@ -393,6 +420,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
