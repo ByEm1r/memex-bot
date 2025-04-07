@@ -63,8 +63,8 @@ function App() {
             }
         }
 
-        // 50ms içinde yapılan tıklamalar engelleniyor (hızlı tıklama önleniyor)
-        if (currentTime - lastClickTime < 50) {
+        // 30ms içinde yapılan tıklamalar engelleniyor (hızlı tıklama önleniyor)
+        if (currentTime - lastClickTime < 30) {
             return;  // Çok hızlı tıklamalar engelleniyor
         }
 
@@ -116,23 +116,25 @@ function App() {
             }
         }
 
-        // "daily_reward" görevi ise, backend'den kalan süreyi kontrol et
+        // "daily_reward" görevi için, lastDailyClaim üzerinden 24 saatlik zaman kontrolü
         if (taskId === "daily_reward") {
-            try {
-                const res = await axios.post("/checkDailyReward", { telegramId });
+            if (lastDailyClaim) {
+                const now = new Date();
+                const diff = now - new Date(lastDailyClaim);  // lastDailyClaim ile şu anki zaman farkını alıyoruz
 
-                if (res.data.message) {
-                    showMessage(res.data.message);
+                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;  // 24 saat = 86400000 ms
+                if (diff < twentyFourHoursInMs) {
+                    const remainingTime = twentyFourHoursInMs - diff;
+                    const hours = Math.floor(remainingTime / 3600000);  // Kalan saat
+                    const minutes = Math.floor((remainingTime % 3600000) / 60000);  // Kalan dakika
+
+                    showMessage(`⏳ You can claim the daily reward in ${hours}h ${minutes}m.`);  // Kalan süreyi gösteriyoruz
                     setLoadingTaskId(null);
-                    return;
+                    return;  // Eğer süre bitmemişse, işlemi durduruyoruz
                 }
-
-                await new Promise((r) => setTimeout(r, 3000)); // 3 saniye bekle
-            } catch (err) {
-                showMessage("❌ Task failed!");
-                setLoadingTaskId(null);
-                return;
             }
+            // Eğer süre bitmişse, görevi tamamla
+            await new Promise((r) => setTimeout(r, 3000));  // 3 saniye bekle
         } else if (taskId === "start_party_with_memex" || taskId === "twitter_follow" || taskId === "telegram_join" || taskId === "twitter_like" || taskId === "twitter_retweet") {
             window.open(link, "_blank");
             await new Promise((r) => setTimeout(r, 10000)); // 10 saniye bekle
@@ -141,11 +143,14 @@ function App() {
         try {
             const res = await axios.post("/completeTask", { telegramId, taskType: taskId });
 
+            // Görevi tamamladığında, completedTasks dizisine ekle
             const updated = [...completedTasks, taskId];
             setCompletedTasks(updated);
 
+            // Güncel completedTasks dizisini localStorage'a kaydet
             localStorage.setItem("completedTasks", JSON.stringify(updated));
 
+            // Kullanıcı bilgilerini güncelle
             setCoins(res.data.coins);
             setLevel(res.data.level);
             showMessage("✅ Task completed!");
