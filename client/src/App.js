@@ -106,7 +106,7 @@ function App() {
             return;
         }
 
-        setLoadingTaskId(taskId);
+        setLoadingTaskId(taskId);  // Buton "Loading..." durumu olacak
 
         // Referral görevleri için şartları kontrol et
         if (restrictedReferralTasks[taskId]) {
@@ -165,7 +165,7 @@ function App() {
             console.log("Error during task completion:", err);
             showMessage("❌ Task failed!");
         } finally {
-            setLoadingTaskId(null);
+            setLoadingTaskId(null); // "Loading..." durumunu sonlandır
         }
     };
 
@@ -354,22 +354,31 @@ function App() {
                             <div>{task.reward}</div>
                             <button
                                 onClick={async () => {
-                                    // Eğer görev bir bağlantıya yönlendirilecekse
-                                    if (task.id === "start_party_with_memex" || task.id === "twitter_follow" || task.id === "telegram_join" || task.id === "twitter_like" || task.id === "twitter_retweet") {
-                                        window.open(task.link, "_blank"); // Yeni bir sekmede linki açar
+                                    // Tıklanabilirliği kontrol et
+                                    if (completedTasks.includes(task.id)) {
+                                        console.log(`Task ${task.id} already completed`);
+                                        return;
+                                    }
+
+                                    // "Loading..." yazısı için loading durumu başlatılıyor
+                                    setLoadingTaskId(task.id);
+
+                                    // Eğer görev bir bağlantıya yönlendirilecekse, bu bağlantıya git
+                                    if (["start_party_with_memex", "twitter_follow", "telegram_join", "twitter_like", "twitter_retweet"].includes(task.id)) {
+                                        window.open(task.link, "_blank");
                                         await new Promise((r) => setTimeout(r, 10000));  // 10 saniye bekle
                                     }
 
-                                    // Normal görevlerde, zaman kontrolü ve diğer işlemler yapılır
+                                    // Normal görevlerde zaman kontrolü ve diğer işlemleri yap
                                     await handleTaskClick(task.id, task.link);
                                 }}
                                 disabled={completedTasks.includes(task.id)} // Tıklanabilirlik kontrolü
                                 className={`task-button ${completedTasks.includes(task.id) ? "completed" : ""}`}
                             >
                                 {completedTasks.includes(task.id)
-                                    ? "✅ Completed" // Görev tamamlandıysa
+                                    ? "✅ Completed" // Görev tamamlandığında
                                     : loadingTaskId === task.id
-                                        ? "Loading..." // Yükleniyor ise
+                                        ? "Loading..." // Tıklanmış ve yükleniyor ise
                                         : task.id === "daily_reward" && !canClaimDailyReward
                                             ? `⏳ ${remainingTime.hours}h ${remainingTime.minutes}m` // Daily reward için bekleme süresi
                                             : "Do Task" // Görev tamamlanabiliyorsa

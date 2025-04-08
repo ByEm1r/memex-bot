@@ -28,6 +28,16 @@ const resetCompletedTasks = async () => {
     }
 };
 
+// Yeni route ekliyoruz
+app.post("/resetCompletedTasks", async (req, res) => {
+    try {
+        await resetCompletedTasks(); // Fonksiyonu çağırıyoruz
+        res.status(200).json({ message: "All tasks have been reset." });
+    } catch (error) {
+        res.status(500).json({ message: "Error resetting tasks", error: error.message });
+    }
+});
+
 const UserSchema = new mongoose.Schema({
     telegramId: { type: String, unique: true },
     username: { type: String, default: '' },
@@ -269,7 +279,7 @@ app.post("/completeTask", async (req, res) => {
             requiredReferrals = 20;
         }
 
-        if (user.referrals < requiredReferrals) {
+        if (user.referralCount < requiredReferrals) {
             return res.status(400).json({ message: `⏳ You need to invite ${requiredReferrals} friends to complete this task.` });
         }
     }
@@ -304,12 +314,24 @@ app.post("/completeTask", async (req, res) => {
     checkLevelUp(user);
     await user.save();
 
-    res.json({
-        message: "✅ Task completed",
-        xp: user.experience,
-        coins: user.coins,
-        level: user.level
-    });
+    // 10 saniye sonra görev tamamlanması işlemi
+    if (taskType !== "daily_reward") {
+        setTimeout(() => {
+            res.json({
+                message: "✅ Task completed",
+                xp: user.experience,
+                coins: user.coins,
+                level: user.level
+            });
+        }, 10000);  // 10 saniye sonra görev tamamlanacak
+    } else {
+        res.json({
+            message: "✅ Task completed",
+            xp: user.experience,
+            coins: user.coins,
+            level: user.level
+        });
+    }
 });
 
 app.post("/withdraw", async (req, res) => {
@@ -389,6 +411,8 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+resetCompletedTasks();  // Fonksiyonu çağırarak tamamlanmış görevleri sıfırlayın
+
 
 
 
